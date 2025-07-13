@@ -6,12 +6,11 @@ import sys
 from datetime import datetime
 from typing import Dict, Any
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Security, Request
+from fastapi import FastAPI, HTTPException, Depends, Security, Request, Path, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 import json
 import logging
 
@@ -21,6 +20,7 @@ try:
     from models import *
     from poe_client import PoeClient
     from logger import request_logger
+    from conversation_manager import conversation_manager
 except ImportError as e:
     print(f"Import error: {e}")
     print("Please make sure all required files are in the same directory")
@@ -50,7 +50,7 @@ security = HTTPBearer()
 
 def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
     """验证API密钥"""
-    if not credentials.credentials.startswith("poe-sk-"):
+    if not credentials.credentials.startswith("sk-test"):
         raise HTTPException(status_code=401, detail="Invalid API key format")
     return credentials.credentials
 
@@ -59,13 +59,11 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """处理请求验证错误"""
     logger.error(f"Validation error: {exc.errors()}")
-    
     try:
         body = await request.body()
         logger.error(f"Request body: {body.decode()}")
     except Exception as e:
         logger.error(f"Could not read request body: {e}")
-    
     return JSONResponse(
         status_code=422,
         content={
@@ -113,25 +111,19 @@ async def preprocess_request(request: Request, call_next):
             body = await request.body()
             if body:
                 data = json.loads(body)
-                
                 # 预处理messages格式，保留所有信息
                 if "messages" in data:
                     for message in data["messages"]:
                         if "content" in message and not isinstance(message["content"], str):
                             message["content"] = preserve_all_content(message["content"])
                             logger.info(f"Converted content for role {message.get('role', 'unknown')}")
-                
                 # 重新构造request
                 new_body = json.dumps(data, ensure_ascii=False).encode('utf-8')
-                
                 async def receive():
                     return {"type": "http.request", "body": new_body}
-                
                 request._receive = receive
-                
         except Exception as e:
             logger.error(f"Error preprocessing request: {e}")
-    
     response = await call_next(request)
     return response
 
@@ -151,12 +143,15 @@ async def root():
         "endpoints": {
             "chat_completions": "/v1/chat/completions",
             "models": "/v1/models",
-            "health": "/health"
+            "health": "/health",
+            "conversations": "/v1/chat/conversations"
         },
         "features": [
             "Direct Poe model names (no mapping)",
             "Auto function calling via OpenHands prompt injection",
-            "Full logging with date-based files"
+            "Full logging with date-based files",
+            "Conversation/session API for auto multi-turn chat",
+            "Conversation API supports streaming (流式多轮)"
         ],
         "status": "ready" if poe_client else "error - poe client not initialized"
     }
@@ -180,23 +175,19 @@ async def list_models(api_key: str = Depends(verify_api_key)):
             created=model_info["created"],
             owned_by=model_info["owned_by"]
         ))
-    
     return ModelListResponse(data=models_data)
 
 async def create_stream_response(request: ChatCompletionRequest, api_key: str):
     """创建流式响应"""
     if not poe_client:
         raise HTTPException(status_code=500, detail="Poe client not initialized")
-        
     start_time = time.time()
     request_id = f"chatcmpl-{uuid.uuid4().hex}"
     created_time = int(time.time())
-    
     # 转换消息格式
     messages = []
     for msg in request.messages:
         msg_dict = {"role": msg.role.value}
-        
         if msg.content is not None:
             msg_dict["content"] = msg.content
         if msg.function_call:
@@ -207,18 +198,14 @@ async def create_stream_response(request: ChatCompletionRequest, api_key: str):
             msg_dict["name"] = msg.name
         if msg.tool_call_id:
             msg_dict["tool_call_id"] = msg.tool_call_id
-        
         messages.append(msg_dict)
-    
     full_response = ""
-    
     async def generate():
         nonlocal full_response
         try:
             async for chunk in poe_client.get_response_stream(messages, request.model):
                 if chunk:
                     full_response += chunk
-                    
                     stream_response = ChatCompletionStreamResponse(
                         id=request_id,
                         created=created_time,
@@ -229,9 +216,7 @@ async def create_stream_response(request: ChatCompletionRequest, api_key: str):
                             finish_reason=None
                         )]
                     )
-                    
                     yield f"data: {stream_response.model_dump_json()}\n\n"
-            
             # 发送结束标记
             final_response = ChatCompletionStreamResponse(
                 id=request_id,
@@ -245,14 +230,12 @@ async def create_stream_response(request: ChatCompletionRequest, api_key: str):
             )
             yield f"data: {final_response.model_dump_json()}\n\n"
             yield "data: [DONE]\n\n"
-            
             # 记录完整的流式响应
             end_time = time.time()
             request_data = request.model_dump()
             request_logger.log_stream_request_response(
                 request_data, full_response, end_time - start_time
             )
-            
         except Exception as e:
             logger.error(f"Error in stream response: {e}")
             error_response = {
@@ -263,7 +246,6 @@ async def create_stream_response(request: ChatCompletionRequest, api_key: str):
                 }
             }
             yield f"data: {json.dumps(error_response)}\n\n"
-    
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
@@ -282,25 +264,20 @@ async def create_chat_completion(
     """创建聊天完成"""
     if not poe_client:
         raise HTTPException(status_code=500, detail="Poe client not initialized")
-        
     start_time = time.time()
-    
     logger.info(f"Received request for Poe model: {request.model}")
     logger.info(f"Messages count: {len(request.messages)}")
     logger.info(f"Has tools: {bool(request.tools)}")
     logger.info(f"Has functions: {bool(request.functions)}")
-    
     # 流式响应
     if request.stream:
         return await create_stream_response(request, api_key)
-    
     # 非流式响应
     try:
         # 转换消息格式，保留所有信息
         messages = []
         for msg in request.messages:
             msg_dict = {"role": msg.role.value}
-            
             if msg.content is not None:
                 msg_dict["content"] = msg.content
             if msg.function_call:
@@ -311,13 +288,9 @@ async def create_chat_completion(
                 msg_dict["name"] = msg.name
             if msg.tool_call_id:
                 msg_dict["tool_call_id"] = msg.tool_call_id
-            
             messages.append(msg_dict)
-        
         logger.info(f"Processed messages with tools: {[{'role': m['role'], 'has_content': bool(m.get('content')), 'has_tools': bool(m.get('tool_calls') or m.get('function_call'))} for m in messages]}")
-        
         response_content = await poe_client.get_response_complete(messages, request.model)
-        
         # 构造OpenAI格式响应
         response = ChatCompletionResponse(
             id=f"chatcmpl-{uuid.uuid4().hex}",
@@ -334,7 +307,6 @@ async def create_chat_completion(
                 total_tokens=sum(len(str(msg.get('content', '')).split()) for msg in messages) + len(response_content.split())
             )
         )
-        
         # 记录请求和响应
         end_time = time.time()
         request_logger.log_request_response(
@@ -342,12 +314,107 @@ async def create_chat_completion(
             response.model_dump(),
             end_time - start_time
         )
-        
         logger.info(f"Response generated successfully, length: {len(response_content)}")
         return response
-        
     except Exception as e:
         logger.error(f"Error in chat completion: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ========== 多轮对话API ==========
+
+class ConversationCreateRequest(BaseModel):
+    system_prompt: str = None
+
+class AddMessageRequest(BaseModel):
+    role: str
+    content: str
+    model: str = "ChatGPT-4o-Latest"
+    stream: bool = False  # 支持流式
+
+@app.post("/v1/chat/conversations")
+async def create_conversation_api(request: ConversationCreateRequest = Body(...)):
+    conversation_id = conversation_manager.create_conversation(request.system_prompt)
+    return {"conversation_id": conversation_id}
+
+@app.get("/v1/chat/conversations/{conversation_id}/messages")
+async def get_conversation_history(conversation_id: str = Path(...)):
+    try:
+        messages = conversation_manager.get_messages(conversation_id)
+        return {"conversation_id": conversation_id, "messages": messages}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+async def create_conversation_stream_response(conversation_id, user_role, user_content, model):
+    # 1. 追加用户消息
+    conversation_manager.append_message(conversation_id, user_role, user_content)
+    # 2. 获取全部历史
+    messages = conversation_manager.get_messages(conversation_id)
+    chat_messages = [
+        {"role": msg["role"], "content": msg["content"]}
+        for msg in messages
+    ]
+    full_response = ""
+    async def generate():
+        nonlocal full_response
+        try:
+            async for chunk in poe_client.get_response_stream(chat_messages, model):
+                if chunk:
+                    full_response += chunk
+                    # 简单SSE格式
+                    yield f"data: {json.dumps({'content': chunk})}\n\n"
+            # 结束标记
+            yield f"data: {json.dumps({'content': '', 'finish_reason': 'stop'})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    # 3. 追加助手回复（等待流式结束后）
+    async def append_assistant_once():
+        nonlocal full_response
+        async for _ in poe_client.get_response_stream(chat_messages, model):
+            pass
+        conversation_manager.append_message(conversation_id, "assistant", full_response)
+    # 启动后台任务将助手完整回复追加到历史
+    asyncio.create_task(append_assistant_once())
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream"
+        }
+    )
+
+@app.post("/v1/chat/conversations/{conversation_id}/messages")
+async def add_message_and_reply(
+    conversation_id: str = Path(...),
+    request: AddMessageRequest = Body(...),
+    api_key: str = Depends(verify_api_key)
+):
+    try:
+        if request.stream:
+            return await create_conversation_stream_response(
+                conversation_id,
+                request.role,
+                request.content,
+                request.model
+            )
+        # 非流式逻辑
+        conversation_manager.append_message(conversation_id, request.role, request.content)
+        messages = conversation_manager.get_messages(conversation_id)
+        chat_messages = [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in messages
+        ]
+        response_content = await poe_client.get_response_complete(chat_messages, request.model)
+        conversation_manager.append_message(conversation_id, "assistant", response_content)
+        return {
+            "conversation_id": conversation_id,
+            "reply": response_content
+        }
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 def start_server():
@@ -363,6 +430,7 @@ def start_server():
     print(f"   • 聊天完成: POST http://{Config.HOST}:{Config.PORT}/v1/chat/completions")
     print(f"   • 模型列表: GET  http://{Config.HOST}:{Config.PORT}/v1/models")
     print(f"   • 健康检查: GET  http://{Config.HOST}:{Config.PORT}/health")
+    print(f"   • 会话管理: POST/GET http://{Config.HOST}:{Config.PORT}/v1/chat/conversations")
     print("=" * 60)
     print("📊 支持的Poe模型:")
     for model in Config.POE_MODELS:
@@ -376,8 +444,9 @@ def start_server():
     print("   • OpenHands自动注入函数调用提示词")
     print("   • 完整的结构化内容处理")
     print("   • 自动角色转换 (assistant ↔ bot)")
+    print("   • 内置多轮会话API（自动维护历史）")
+    print("   • 会话API支持流式多轮（SSE）")
     print("=" * 60)
-    
     uvicorn.run(
         app,
         host=Config.HOST,
