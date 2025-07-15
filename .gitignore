@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+*.vscode
+.idea/
+
+# Protobuf generated
+plan_manager/grpc_client/helper_pb2.py
+plan_manager/grpc_client/helper_pb2_grpc.py
+
+# Config
+plan_manager.ini
+
+# DB
+*.db
+*.sqlite
+
+# System files
+.DS_Store

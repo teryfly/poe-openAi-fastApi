@@ -1,15 +1,16 @@
 import os
 
 class Config:
-    POE_API_KEY = "xxxxx-xxxxx-xxxxx-xxxxx"  # 替换为你的Poe API密钥
-    # echo $OPENAI_API_KEY
-    # export OPENAI_API_KEY="your-api-key-here"
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-dummy-key-for-compatibility")
+    POE_API_KEY = "xxxxx-xxxxx-xxxxx-xxxxx"
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-test-key-for-compatibility")
+    # 新增配置：自定义 OpenAI 兼容 API 服务端 URL
+    OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://43.132.224.225:8000/v1")
     HOST = "0.0.0.0"
     PORT = 8000
     LOG_DIR = "train_data"
-    
-    # 直接使用Poe的模型名称，无需映射
+
+    LLM_BACKEND = os.getenv("LLM_BACKEND", "openai")  # openai  or poe
+
     POE_MODELS = [
         {
             "id": "Claude-3.5-Sonnet",
