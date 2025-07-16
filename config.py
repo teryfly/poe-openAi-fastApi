@@ -2,7 +2,7 @@ import os
 
 class Config:
     POE_API_KEY = "xxxxx-xxxxx-xxxxx-xxxxx"
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-test-key-for-compatibility")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-test-key-for-compatibility-Test")
     # 新增配置：自定义 OpenAI 兼容 API 服务端 URL
     OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://43.132.224.225:8000/v1")
     HOST = "0.0.0.0"
