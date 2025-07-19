@@ -17,6 +17,13 @@ class Config:
             "description": "OpenAI’s latest flagship model with significantly improved coding skills, long context (1M tokens), and improved instruction following."
         },
         {
+            "id": "Claude-Sonnet-4-Reasoning",
+            "object": "model",
+            "created": 1729641602,
+            "owned_by": "anthropic",
+            "description": "Claude Sonnet 4 from Anthropic, supports customizable thinking budget (up to 60k tokens) and 200k context window.To instruct the bot to use more thinking effort, add --thinking_budget and a number ranging from 0 to 16,384 to the end of your message."
+        },
+        {
             "id": "Claude-Sonnet-4",
             "object": "model",
             "created": 1729641600,

@@ -20,6 +20,27 @@ class Config:
             "description": "Anthropic's Claude 3.5 Sonnet using the October 22, 2024 model snapshot"
         },
         {
+            "id": "Claude-Sonnet-4",
+            "object": "model",
+            "created": 1729641601,
+            "owned_by": "anthropic",
+            "description": "Anthropic's Claude 4 Sonnet"
+        },
+        {
+            "id": "Claude-Sonnet-4-Reasoning",
+            "object": "model",
+            "created": 1729641602,
+            "owned_by": "anthropic",
+            "description": "Claude Sonnet 4 from Anthropic, supports customizable thinking budget (up to 60k tokens) and 200k context window.To instruct the bot to use more thinking effort, add --thinking_budget and a number ranging from 0 to 16,384 to the end of your message."
+        },
+        {
+            "id": "GPT-4.1",
+            "object": "model",
+            "created": 1715368132,
+            "owned_by": "openai",
+            "description": "OpenAI’s latest flagship model with significantly improved coding skills, long context (1M tokens), and improved instruction following. Supports native vision, and generally has more intelligence than GPT-4o"
+        },
+        {
             "id": "ChatGPT-4o-Latest",
             "object": "model",
             "created": 1715368132,

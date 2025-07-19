@@ -52,6 +52,9 @@ register_misc_routes(app)
 register_chat_routes(app)
 app.include_router(project_router)
 
+from routes.routes_plan import router as plan_router
+app.include_router(plan_router)
+
 # === 启动函数 ===
 def start_server():
     import uvicorn
