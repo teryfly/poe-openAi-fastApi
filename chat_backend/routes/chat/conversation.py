@@ -7,18 +7,20 @@ router = APIRouter()
 
 
 # ========== 请求模型 ==========
+
 class ConversationCreateRequest(BaseModel):
     system_prompt: Optional[str] = None
     project_id: int = 0
     name: Optional[str] = None
     model: Optional[str] = None
+    assistance_role: Optional[str] = None
 
 
 class UpdateConversationRequest(BaseModel):
     project_id: Optional[int] = None
     name: Optional[str] = None
     model: Optional[str] = None
-
+    assistance_role: Optional[str] = None  
 
 # ========== 接口实现 ==========
 
@@ -28,7 +30,8 @@ async def create_conversation_api(request: ConversationCreateRequest = Body(...)
         system_prompt=request.system_prompt,
         project_id=request.project_id,
         name=request.name,
-        model=request.model
+        model=request.model,
+        assistance_role=request.assistance_role
     )
     return {"conversation_id": conversation_id}
 
@@ -37,7 +40,6 @@ async def create_conversation_api(request: ConversationCreateRequest = Body(...)
 async def get_grouped_conversations():
     grouped = conversation_manager.get_all_conversations_grouped_by_project()
     return grouped
-
 
 @router.put("/v1/chat/conversations/{conversation_id}")
 async def update_conversation(
@@ -48,7 +50,8 @@ async def update_conversation(
         conversation_id,
         project_id=request.project_id,
         name=request.name,
-        model=request.model
+        model=request.model,
+        assistance_role=request.assistance_role 
     )
     if success:
         return {"message": "Conversation updated"}

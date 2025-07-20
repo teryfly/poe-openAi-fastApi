@@ -36,15 +36,15 @@ class ConversationManager:
                     )
                 """)
 
-    def create_conversation(self, system_prompt=None, project_id=0, name=None, model=None):
+    def create_conversation(self, system_prompt=None, project_id=0, name=None, model=None, assistance_role=None):
         conversation_id = str(uuid.uuid4())
         with self.lock:
             with self._get_conn() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "INSERT INTO conversations (id, system_prompt, created_at, project_id, name, model) "
-                        "VALUES (%s, %s, %s, %s, %s, %s)",
-                        (conversation_id, system_prompt, datetime.now(), project_id, name, model)
+                        "INSERT INTO conversations (id, system_prompt, created_at, project_id, name, model, assistance_role) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (conversation_id, system_prompt, datetime.now(), project_id, name, model, assistance_role)
                     )
                     if system_prompt:
                         cursor.execute(
@@ -84,7 +84,7 @@ class ConversationManager:
                 cursor.execute("""
                     SELECT 
                         c.id AS conversation_id, c.system_prompt, c.created_at, c.project_id,
-                        c.name, c.model,
+                        c.name, c.model, c.assistance_role,
                         COALESCE(p.name, '其它') AS project_name
                     FROM conversations c
                     LEFT JOIN projects p ON c.project_id = p.id
@@ -97,7 +97,7 @@ class ConversationManager:
                     grouped.setdefault(pname, []).append(row)
                 return grouped
 
-    def update_conversation(self, conversation_id, project_id=None, name=None, model=None):
+    def update_conversation(self, conversation_id, project_id=None, name=None, model=None, assistance_role=None):
         updates = []
         values = []
         if project_id is not None:
@@ -109,6 +109,9 @@ class ConversationManager:
         if model is not None:
             updates.append("model=%s")
             values.append(model)
+        if assistance_role is not None:
+            updates.append("assistance_role=%s")
+            values.append(assistance_role)
         if not updates:
             return False
         values.append(conversation_id)
