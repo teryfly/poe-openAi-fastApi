@@ -11,6 +11,14 @@ class Config:
 
     LLM_BACKEND = os.getenv("LLM_BACKEND", "openai")  # openai  or poe
 
+    # 新增：忽略落库的用户消息内容列表（完全匹配时生效）
+    ignoredUserMessages = [
+        "continue, and mark [to be continue] at the last line of your replay if your output is NOT over and wait user's command to be continued",
+        "continue",
+        "继续",
+        "go on"
+    ]
+
     POE_MODELS = [
         {
             "id": "Claude-3.5-Sonnet",
