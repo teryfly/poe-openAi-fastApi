@@ -19,8 +19,12 @@ class AddMessageRequest(BaseModel):
     stream: bool = False  # 前端可传 stream: true
 
 def is_ignored_user_message(role: str, content: str) -> bool:
+    """
+    判断用户消息是否在忽略列表。先对 content 做 strip，再完全匹配。
+    """
     if role.lower() == "user":
-        return content in Config.ignoredUserMessages
+        trimmed = content.strip()
+        return trimmed in [msg.strip() for msg in Config.ignoredUserMessages]
     return False
 
 def merge_assistant_messages_with_user_history(messages, user_role=None, user_content=None, ignore_user=False):
