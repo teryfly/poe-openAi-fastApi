@@ -9,6 +9,7 @@ from conversation_manager import conversation_manager
 from llm_router import get_llm_client
 from auth import verify_api_key
 from config import Config
+from typing import List
 
 router = APIRouter()
 
@@ -161,3 +162,15 @@ async def create_conversation_stream_response(conversation_id, user_role, user_c
             "Content-Type": "text/event-stream"
         }
     )
+
+class DeleteMessagesRequest(BaseModel):
+    message_ids: List[int]
+
+
+@router.post("/v1/chat/messages/delete")
+async def delete_messages(request: DeleteMessagesRequest = Body(...)):
+    try:
+        count = conversation_manager.delete_messages(request.message_ids)
+        return {"message": f"{count} messages deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

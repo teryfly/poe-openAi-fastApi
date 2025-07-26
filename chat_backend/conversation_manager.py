@@ -183,6 +183,16 @@ class ConversationManager:
                     )
                     return cursor.lastrowid
 
+    def delete_messages(self, message_ids: list[int]):
+        """删除一条或多条消息"""
+        if not message_ids:
+            return 0
+        with self._get_conn() as conn:
+            with conn.cursor() as cursor:
+                placeholders = ','.join(['%s'] * len(message_ids))
+                cursor.execute(f"DELETE FROM messages WHERE id IN ({placeholders})", tuple(message_ids))
+                return cursor.rowcount
+
     def update_message_content_and_time(self, message_id, content, created_at=None):
         """
         更新指定消息的内容和（可选）创建时间
