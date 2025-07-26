@@ -18,6 +18,7 @@
 | ✅ 更新消息内容      | `PUT /v1/chat/messages/{message_id}`                     | 修改指定消息内容      |
 | ✅ 获取计划分类      | `GET /v1/plan/categories`                                | 用于生成文档的分类     |
 | ✅ 新建计划文档      | `POST /v1/plan/documents`                                | 保存聊天生成的文档     |
+| 获取项目全量源代码 | `GET /v1/projects/2/complete-source-code` | 入参项目id,出参completeSourceCode |
 
 ---
 
@@ -253,4 +254,15 @@ Content-Type: application/json
 ```
 
 ---
+## 获取项目全量源代码 API, 入参项目id,出参completeSourceCode
+示例调用方式
+请求：
 
+GET /v1/projects/2/complete-source-code
+返回：
+json
+{
+  "completeSourceCode": "import os\n\n# main.py\nprint('Hello World')\n..."
+}
+
+**注意：** 需要在项目根目录设置 .gitignore 文件 ，用于排除指定的源码文件

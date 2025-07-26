@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 from db import get_conn  # 确保你有 db.py 里的 get_conn
 from datetime import datetime
+from fastapi import Request
+from code_project_reader.api import get_project_document
+import os
 
 router = APIRouter()
 
@@ -93,3 +96,33 @@ async def delete_project(project_id: int):
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Project not found")
             return {"message": "Project deleted successfully"}
+            
+@router.get("/v1/projects/{project_id}/complete-source-code")
+async def get_project_complete_source(project_id: int = Path(...)):
+    import os
+    os.environ["CODE_PROJECT_DEBUG"] = "1"
+    from code_project_reader.api import get_project_document
+    
+
+    with get_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT ai_work_dir FROM projects WHERE id=%s", (project_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Project not found")
+            ai_work_dir = row[0]
+
+            try:
+                project_path = os.path.abspath(ai_work_dir)
+                print(f"[DEBUG] ai_work_dir = {ai_work_dir}")
+                print(f"[DEBUG] abs path = {project_path}")
+                result = get_project_document(project_path, save_output=False)
+                print(f"[DEBUG] result metadata = {result['metadata']}")
+                return {
+                    "completeSourceCode": result["content"]
+                }
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=f"Failed to read source code: {e}")
+
