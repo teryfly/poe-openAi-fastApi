@@ -73,7 +73,7 @@ class ConversationManager:
                     if cursor.fetchone() is None:
                         raise KeyError("Conversation not found")
                     cursor.execute(
-                        "SELECT role, content FROM messages WHERE conversation_id=%s ORDER BY id ASC",
+                        "SELECT id, role, content FROM messages WHERE conversation_id=%s ORDER BY id ASC",
                         (conversation_id,)
                     )
                     return list(cursor.fetchall())
@@ -148,6 +148,7 @@ class ConversationManager:
                         "INSERT INTO messages (conversation_id, role, content, created_at) VALUES (%s, %s, %s, %s)",
                         (conversation_id, role, content, created_at)
                     )
+                    return cursor.lastrowid
 
     def append_message_returning_id(self, conversation_id, role, content, created_at=None):
         # 用于流式助手占位符消息

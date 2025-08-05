@@ -43,66 +43,210 @@ Content-Type: application/json
 
 ---
 
-### 2. 追加一轮消息并获得助手回复（非流式）
 
-```http
-POST /v1/chat/conversations/{conversation_id}/messages
-Authorization: Bearer poe-sk-xxxx
-Content-Type: application/json
+### 1. 获取会话消息（GET）
 
-{
-  "role": "user",
-  "content": "你好",
-  "model": "Claude-3.5-Sonnet"
-}
+**接口：**
 ```
-
-响应：
-
-```json
-{
-  "conversation_id": "...",
-  "reply": "你好，有什么可以帮您？"
-}
-```
-
----
-
-### 3. 获取历史消息
-
-```http
 GET /v1/chat/conversations/{conversation_id}/messages
 ```
 
-响应：
+**请求示例：**
+```http
+GET /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
+Authorization: Bearer sk-test-xxxx
+```
 
+**返回示例：**
 ```json
 {
-  "conversation_id": "...",
+  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
   "messages": [
-    {"role": "system", "content": "..."},
-    {"role": "user", "content": "..."},
-    {"role": "assistant", "content": "..."}
+    {
+      "id": 101,
+      "role": "system",
+      "content": "你是AI助手，帮我写代码。"
+    },
+    {
+      "id": 102,
+      "role": "user",
+      "content": "用Python写一个冒泡排序"
+    },
+    {
+      "id": 103,
+      "role": "assistant",
+      "content": "这是Python实现的冒泡排序：\n```python\n def bubble_sort(arr): ..."
+    }
   ]
 }
 ```
 
 ---
 
-### 4. 流式请求
+### 2. 添加新消息并获得回复（POST）
 
-```http
+**接口：**
+```
 POST /v1/chat/conversations/{conversation_id}/messages
-Authorization: Bearer poe-sk-xxxx
+```
+
+**请求示例：**
+```http
+POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
+Authorization: Bearer sk-test-xxxx
 Content-Type: application/json
 
 {
   "role": "user",
-  "content": "你好，帮我写个Python冒泡排序。",
+  "content": "请用Java写冒泡排序",
+  "model": "ChatGPT-4o-Latest",
+  "stream": false
+}
+```
+
+**返回示例：**
+```json
+{
+  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
+  "reply": "这是Java实现的冒泡排序：\n```java\nvoid bubbleSort(int[] arr) {...}\n```",
+  "user_message_id": 104,
+  "assistant_message_id": 105
+}
+```
+
+---
+
+### 3. 添加新消息并获得流式回复（POST，流式响应）
+
+**请求：**
+```http
+POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
+Authorization: Bearer sk-test-xxxx
+Content-Type: application/json
+
+{
+  "role": "user",
+  "content": "请用C++写冒泡排序",
   "model": "ChatGPT-4o-Latest",
   "stream": true
 }
 ```
+
+**流式响应示例（text/event-stream）：**
+```
+data: {"user_message_id":106,"assistant_message_id":107,"conversation_id":"2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41"}
+
+data: {"content":"这是C++实现的冒泡排序：\n"}
+data: {"content":"```cpp\n"}
+data: {"content":"void bubbleSort(int arr[], int n) {"}
+data: {"content":" ..."}
+data: {"content":"}\n```"}
+data: {"content":"","finish_reason":"stop"}
+data: [DONE]
+```
+
+
+### 1. 获取会话消息（GET）
+
+**接口：**
+```
+GET /v1/chat/conversations/{conversation_id}/messages
+```
+
+**请求示例：**
+```http
+GET /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
+Authorization: Bearer sk-test-xxxx
+```
+
+**返回示例：**
+```json
+{
+  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
+  "messages": [
+    {
+      "id": 101,
+      "role": "system",
+      "content": "你是AI助手，帮我写代码。"
+    },
+    {
+      "id": 102,
+      "role": "user",
+      "content": "用Python写一个冒泡排序"
+    },
+    {
+      "id": 103,
+      "role": "assistant",
+      "content": "这是Python实现的冒泡排序：\n```python\n def bubble_sort(arr): ..."
+    }
+  ]
+}
+```
+
+---
+
+### 2. 添加新消息并获得回复（POST）
+
+**接口：**
+```
+POST /v1/chat/conversations/{conversation_id}/messages
+```
+
+**请求示例：**
+```http
+POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
+Authorization: Bearer sk-test-xxxx
+Content-Type: application/json
+
+{
+  "role": "user",
+  "content": "请用Java写冒泡排序",
+  "model": "ChatGPT-4o-Latest",
+  "stream": false
+}
+```
+
+**返回示例：**
+```json
+{
+  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
+  "reply": "这是Java实现的冒泡排序：\n```java\nvoid bubbleSort(int[] arr) {...}\n```",
+  "user_message_id": 104,
+  "assistant_message_id": 105
+}
+```
+
+---
+
+### 3. 添加新消息并获得流式回复（POST，流式响应）
+
+**请求：**
+```http
+POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
+Authorization: Bearer sk-test-xxxx
+Content-Type: application/json
+
+{
+  "role": "user",
+  "content": "请用C++写冒泡排序",
+  "model": "ChatGPT-4o-Latest",
+  "stream": true
+}
+```
+
+**流式响应示例（text/event-stream）：**
+```
+data: {"user_message_id":106,"assistant_message_id":107,"conversation_id":"2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41"}
+
+data: {"content":"这是C++实现的冒泡排序：\n"}
+data: {"content":"```cpp\n"}
+data: {"content":"void bubbleSort(int arr[], int n) {"}
+data: {"content":" ..."}
+data: {"content":"}\n```"}
+data: {"content":"","finish_reason":"stop"}
+data: [DONE]
+```
+
 
 说明：
 

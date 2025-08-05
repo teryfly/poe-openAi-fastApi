@@ -46,7 +46,7 @@ async def create_chat_completion(
         if request.stream:
             # 如果有 conversation_id 字段，则支持多轮对话落库
             conversation_id = None
-            # 支持“OpenAI风格”自定义扩展：在 extra 或 messages 中带 conversation_id 字段
+            # 支持"OpenAI风格"自定义扩展：在 extra 或 messages 中带 conversation_id 字段
             for msg in request.messages:
                 if hasattr(msg, "conversation_id"):
                     conversation_id = msg.conversation_id

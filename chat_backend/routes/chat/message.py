@@ -32,6 +32,7 @@ def merge_assistant_messages_with_user_history(messages, user_role=None, user_co
     """
     使消息序列始终成 user/assistant/user/assistant... 结构，合并连续 assistant 消息
     若 ignore_user=True，则 user_role 和 user_content 为当前未入库但要发送的 user 消息
+    返回格式为仅包含 role 和 content 的消息列表（用于发送给LLM）
     """
     result = []
     temp_assistant = []
@@ -87,8 +88,10 @@ async def add_message_and_reply(
         # ===== 同步返回（原逻辑） =====
         print(f"[DEBUG] conversation_id={conversation_id}, request={request}")
         ignore_user = is_ignored_user_message(request.role, request.content)
+        user_message_id = None
         if not ignore_user:
-            conversation_manager.append_message(conversation_id, request.role, request.content)
+            user_message_id = conversation_manager.append_message(conversation_id, request.role, request.content)
+        
         messages = conversation_manager.get_messages(conversation_id)
         print(f"[DEBUG] messages={messages}")
         chat_messages = merge_assistant_messages_with_user_history(
@@ -99,10 +102,13 @@ async def add_message_and_reply(
         )
         print(f"[DEBUG] chat_messages={chat_messages}")
         response_content = await llm_client.get_response_complete(chat_messages, request.model)
-        conversation_manager.append_message(conversation_id, "assistant", response_content)
+        assistant_message_id = conversation_manager.append_message(conversation_id, "assistant", response_content)
+        
         return {
             "conversation_id": conversation_id,
-            "reply": response_content
+            "reply": response_content,
+            "user_message_id": user_message_id,
+            "assistant_message_id": assistant_message_id
         }
     except Exception as e:
         import traceback
@@ -115,8 +121,9 @@ async def create_conversation_stream_response(conversation_id, user_role, user_c
 
     ignore_user = is_ignored_user_message(user_role, user_content)
 
+    user_message_id = None
     if not ignore_user:
-        conversation_manager.append_message(conversation_id, user_role, user_content)
+        user_message_id = conversation_manager.append_message(conversation_id, user_role, user_content)
 
     messages = conversation_manager.get_messages(conversation_id)
 
@@ -134,6 +141,9 @@ async def create_conversation_stream_response(conversation_id, user_role, user_c
     async def generate():
         nonlocal full_response
         try:
+            # 首先发送消息ID信息
+            yield f"data: {json.dumps({'user_message_id': user_message_id, 'assistant_message_id': assistant_msg_id, 'conversation_id': conversation_id})}\n\n"
+            
             async for chunk in llm_client.get_response_stream(chat_messages, model):
                 if chunk:
                     full_response += chunk
