@@ -410,3 +410,34 @@ json
 }
 
 **注意：** 需要在项目根目录设置 .gitignore 文件 ，用于排除指定的源码文件
+
+---
+
+
+## 停止流式消息生成 API 示例
+
+在发起流式对话时（POST `/v1/chat/conversations/{conversation_id}/messages`，参数 `stream: true`），接口会返回 `session_id`。
+
+当需要主动停止 LLM 继续生成内容时，前端可调用如下 API：
+
+### POST /v1/chat/stop-stream
+
+**请求体参数：**
+
+```json
+{
+  "session_id": "your-session-id-string"
+}
+```
+
+**返回示例：**
+
+```json
+{
+  "message": "Stream stopped",
+  "session_id": "your-session-id-string"
+}
+```
+
+- `session_id` 为流式消息接口返回的 `session_id`
+- 调用后将通知后端终止 LLM 生成内容，及时释放资源

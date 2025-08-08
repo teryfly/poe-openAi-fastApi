@@ -16,6 +16,13 @@ class Config:
             "owned_by": "openai/60/60/193",
             "description": "OpenAI’s latest flagship model with significantly improved coding skills, long context (1M tokens), and improved instruction following."
         },
+         {
+            "id": "GPT-5-Chat",
+            "object": "model",
+            "created": 171536813,
+            "owned_by": "openai/38/38/241",
+            "description": "GPT-5 Chat points to the GPT-5 snapshot currently used in ChatGPT. GPT-5 is OpenAI’s latest flagship model with significantly improved coding skills, long context (400k tokens), and improved instruction following. Supports native vision, and generally has more intelligence than GPT-4.1. "
+        },       
         {
             "id": "Claude-Sonnet-4-Reasoning",
             "object": "model",

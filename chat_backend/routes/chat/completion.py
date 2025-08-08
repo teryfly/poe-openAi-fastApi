@@ -2,6 +2,7 @@ import uuid
 import time
 import json
 import logging
+import re  # 新增导入正则模块
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.responses import StreamingResponse
@@ -44,14 +45,11 @@ async def create_chat_completion(
 
     try:
         if request.stream:
-            # 如果有 conversation_id 字段，则支持多轮对话落库
             conversation_id = None
-            # 支持"OpenAI风格"自定义扩展：在 extra 或 messages 中带 conversation_id 字段
             for msg in request.messages:
                 if hasattr(msg, "conversation_id"):
                     conversation_id = msg.conversation_id
                     break
-                # 也可以约定 name/conversation_id 字段
                 if hasattr(msg, "name") and str(msg.name).startswith("cid-"):
                     conversation_id = str(msg.name)[4:]
                     break
@@ -95,10 +93,8 @@ async def _stream_response(
     assistant_msg_id = None
     now = datetime.now()
 
-    # 如果有 conversation_id，可落库
     if conversation_id:
         try:
-            # 插入占位符
             assistant_msg_id = conversation_manager.insert_assistant_placeholder(conversation_id, created_at=now)
         except Exception as e:
             logger.warning(f"Insert assistant placeholder failed: {e}")
@@ -108,6 +104,10 @@ async def _stream_response(
         try:
             async for chunk in llm_client.get_response_stream(messages, request.model):
                 if chunk:
+                    # 严格过滤：凡是以 "Thinking..." 开头的消息直接忽略
+                    if chunk.strip().startswith("Thinking..."):
+                        continue
+                    
                     full_response += chunk
                     stream_response = ChatCompletionStreamResponse(
                         id=request_id,
@@ -142,12 +142,14 @@ async def _stream_response(
 
     async def update_assistant_message():
         nonlocal full_response
-        async for _ in llm_client.get_response_stream(messages, request.model):
-            pass
+        filtered_response = ""
+        async for chunk in llm_client.get_response_stream(messages, request.model):
+            if chunk and not chunk.strip().startswith("Thinking..."):
+                filtered_response += chunk
         if assistant_msg_id:
             conversation_manager.update_message_content_and_time(
                 assistant_msg_id,
-                full_response,
+                filtered_response,
                 created_at=now
             )
 
