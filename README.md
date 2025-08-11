@@ -1,443 +1,256 @@
-# ✨ Poe OpenAI FastAPI Proxy
 
-基于 FastAPI 的后端服务，使用 OpenAI 风格 API 对接 Poe、OpenAI 模型，支持流式与非流式对话、多项目分类、多轮记录、文档计划生成等功能。
+# chat_backend API 文档
+
+版本: 2.3.0  
+Base URL: http://{HOST}:{PORT}（默认 8000）  
+认证方式: HTTP Bearer（Authorization: Bearer ），需以 sk-test 或 poe-sk 开头
+
+说明:
+- JSON 编码 UTF-8；时间戳为 ISO8601 字符串
+- SSE 流响应 Content-Type: text/event-stream
+- 错误格式: {"detail": "错误信息"}
+
+## API 索引
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| GET | / | 否 | 根信息 |
+| GET | /health | 否 | 健康检查 |
+| GET | /v1/models | 否 | 模型列表 |
+| POST | /v1/chat/completions | 是 | OpenAI 兼容聊天（支持 SSE） |
+| POST | /v1/chat/conversations | 否 | 创建会话 |
+| GET | /v1/chat/conversations | 否 | 会话列表（支持过滤） |
+| GET | /v1/chat/conversations/grouped | 否 | 按项目分组的会话 |
+| GET | /v1/chat/conversations/{conversation_id} | 否 | 会话详情 |
+| PUT | /v1/chat/conversations/{conversation_id} | 否 | 更新会话 |
+| DELETE | /v1/chat/conversations/{conversation_id} | 否 | 删除会话 |
+| GET | /v1/chat/conversations/{conversation_id}/messages | 否 | 会话消息列表 |
+| POST | /v1/chat/conversations/{conversation_id}/messages | 是 | 追加消息并获取回复（支持 SSE） |
+| POST | /v1/chat/messages/delete | 否 | 批量删除消息 |
+| POST | /v1/chat/stop-stream | 否 | 停止正在进行的流式会话 |
+| GET | /v1/projects | 否 | 项目列表 |
+| GET | /v1/projects/{id} | 否 | 项目详情 |
+| POST | /v1/projects | 否 | 新建项目 |
+| PUT | /v1/projects/{id} | 否 | 更新项目 |
+| DELETE | /v1/projects/{id} | 否 | 删除项目 |
+| GET | /v1/projects/{id}/complete-source-code | 否 | 聚合工程源码文本 |
+| GET | /v1/plan/categories | 否 | 计划分类列表 |
+| POST | /v1/plan/documents | 否 | 新增计划文档（版本自增） |
+| GET | /v1/plan/documents/history | 否 | 文档历史版本 |
+
+鉴权说明:
+- 需要访问 LLM 的接口必须带 Authorization 头：/v1/chat/completions 与 POST /v1/chat/conversations/{id}/messages
+- 其他接口当前未强制鉴权
 
 ---
 
-## 🔗 接口总览
+## 通用对象
 
-| 功能            | 接口                                                       | 描述            |
-| ------------- | -------------------------------------------------------- | ------------- |
-| ✅ 创建会话        | `POST /v1/chat/conversations`                            | 支持指定项目、角色、模型  |
-| ✅ 追加消息并回复     | `POST /v1/chat/conversations/{conversation_id}/messages` | 支持流式与非流式      |
-| ✅ 获取会话历史      | `GET /v1/chat/conversations/{conversation_id}/messages`  | 返回多轮完整消息      |
-| ✅ 获取会话列表      | `GET /v1/chat/conversations/grouped`                     | 按项目分组返回       |
-| ✅ 更新会话        | `PUT /v1/chat/conversations/{conversation_id}`           | 更新项目、名称、模型、角色 |
-| ✅ 删除会话        | `DELETE /v1/chat/conversations/{conversation_id}`        | 单个会话删除        |
-| ✅ 删除消息（单条或多条） | `POST /v1/chat/messages/delete`                          | 批量删除消息        |
-| ✅ 更新消息内容      | `PUT /v1/chat/messages/{message_id}`                     | 修改指定消息内容      |
-| ✅ 获取计划分类      | `GET /v1/plan/categories`                                | 用于生成文档的分类     |
-| ✅ 新建计划文档      | `POST /v1/plan/documents`                                | 保存聊天生成的文档     |
-| 获取项目全量源代码 | `GET /v1/projects/2/complete-source-code` | 入参项目id,出参completeSourceCode |
+- 项目 Project 字段
+  - id, name, dev_environment, grpc_server_address
+  - llm_model, llm_url, git_work_dir, ai_work_dir
+  - created_time, updated_time
+
+- 会话 Conversation 字段
+  - id, system_prompt, status, created_at, updated_at, project_id, name, model, assistance_role
+
+- 消息 Message 字段
+  - id, conversation_id, role, content, created_at, updated_at
 
 ---
 
-## 💬 会话使用示例
+## Misc
 
-### 1. 创建新会话
+1) GET /
+- 响应: 服务信息、版本、当前 LLM 后端与常用端点
 
-```http
-POST /v1/chat/conversations
-Content-Type: application/json
+2) GET /health
+- 响应: {"status":"healthy","timestamp":"...","llm_backend":"..."}
 
-{
-  "system_prompt": "You are a helpful assistant."
-}
-```
+3) GET /v1/models
+- 响应: { "object":"list", "data": [ { "id":"...", "object":"model", "created": 171..., "owned_by":"..." }, ... ] }
 
-响应：
+---
 
+## OpenAI 兼容聊天
+
+POST /v1/chat/completions 需要鉴权  
+请求体(关键字段):
+- model: string
+- messages: [{role: "system"|"user"|"assistant"|"tool"|"function", content: string}]
+- stream: bool（默认 false）
+- 可选: functions/tools 等原生 OpenAI 字段（透传）
+
+关联会话的两种方式（二选一）:
+- 在最后一条消息的 name 填写 "cid-"
+- 非标准：若消息对象带有 conversation_id 字段（当前模型未定义，不建议使用）
+
+非流式响应:
+- 标准 OpenAI JSON：choices[0].message.content 等
+- usage 为基于空格分词的简易统计
+
+SSE 流式响应:
+- 逐帧发送 {"id","object":"chat.completion.chunk","created","model","choices":[{"delta":{"content":"..."},"index":0}]}
+- 结束帧 finish_reason="stop"，然后 data: [DONE]
+- 过滤策略：以 "Thinking..." 开头的分片会被忽略，不会出现在输出和落库
+
+示例请求:
 ```json
-{ "conversation_id": "xxx-xxx-xxx-xxx" }
-```
-
----
-
-
-### 1. 获取会话消息（GET）
-
-**接口：**
-```
-GET /v1/chat/conversations/{conversation_id}/messages
-```
-
-**请求示例：**
-```http
-GET /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
-Authorization: Bearer sk-test-xxxx
-```
-
-**返回示例：**
-```json
 {
-  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
+  "model": "GPT-4.1",
   "messages": [
-    {
-      "id": 101,
-      "role": "system",
-      "content": "你是AI助手，帮我写代码。"
-    },
-    {
-      "id": 102,
-      "role": "user",
-      "content": "用Python写一个冒泡排序"
-    },
-    {
-      "id": 103,
-      "role": "assistant",
-      "content": "这是Python实现的冒泡排序：\n```python\n def bubble_sort(arr): ..."
-    }
-  ]
-}
-```
-
----
-
-### 2. 添加新消息并获得回复（POST）
-
-**接口：**
-```
-POST /v1/chat/conversations/{conversation_id}/messages
-```
-
-**请求示例：**
-```http
-POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
-Authorization: Bearer sk-test-xxxx
-Content-Type: application/json
-
-{
-  "role": "user",
-  "content": "请用Java写冒泡排序",
-  "model": "ChatGPT-4o-Latest",
-  "stream": false
-}
-```
-
-**返回示例：**
-```json
-{
-  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
-  "reply": "这是Java实现的冒泡排序：\n```java\nvoid bubbleSort(int[] arr) {...}\n```",
-  "user_message_id": 104,
-  "assistant_message_id": 105
-}
-```
-
----
-
-### 3. 添加新消息并获得流式回复（POST，流式响应）
-
-**请求：**
-```http
-POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
-Authorization: Bearer sk-test-xxxx
-Content-Type: application/json
-
-{
-  "role": "user",
-  "content": "请用C++写冒泡排序",
-  "model": "ChatGPT-4o-Latest",
+    {"role":"system","content":"You are helpful."},
+    {"role":"user","content":"Hello"},
+    {"role":"user","content":"继续", "name": "cid-"}
+  ],
   "stream": true
 }
 ```
 
-**流式响应示例（text/event-stream）：**
-```
-data: {"user_message_id":106,"assistant_message_id":107,"conversation_id":"2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41"}
-
-data: {"content":"这是C++实现的冒泡排序：\n"}
-data: {"content":"```cpp\n"}
-data: {"content":"void bubbleSort(int arr[], int n) {"}
-data: {"content":" ..."}
-data: {"content":"}\n```"}
-data: {"content":"","finish_reason":"stop"}
-data: [DONE]
-```
-
-
-### 1. 获取会话消息（GET）
-
-**接口：**
-```
-GET /v1/chat/conversations/{conversation_id}/messages
-```
-
-**请求示例：**
-```http
-GET /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
-Authorization: Bearer sk-test-xxxx
-```
-
-**返回示例：**
-```json
-{
-  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
-  "messages": [
-    {
-      "id": 101,
-      "role": "system",
-      "content": "你是AI助手，帮我写代码。"
-    },
-    {
-      "id": 102,
-      "role": "user",
-      "content": "用Python写一个冒泡排序"
-    },
-    {
-      "id": 103,
-      "role": "assistant",
-      "content": "这是Python实现的冒泡排序：\n```python\n def bubble_sort(arr): ..."
-    }
-  ]
-}
-```
-
 ---
 
-### 2. 添加新消息并获得回复（POST）
+## 会话管理
 
-**接口：**
-```
-POST /v1/chat/conversations/{conversation_id}/messages
-```
-
-**请求示例：**
-```http
-POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
-Authorization: Bearer sk-test-xxxx
-Content-Type: application/json
-
-{
-  "role": "user",
-  "content": "请用Java写冒泡排序",
-  "model": "ChatGPT-4o-Latest",
-  "stream": false
-}
-```
-
-**返回示例：**
-```json
-{
-  "conversation_id": "2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41",
-  "reply": "这是Java实现的冒泡排序：\n```java\nvoid bubbleSort(int[] arr) {...}\n```",
-  "user_message_id": 104,
-  "assistant_message_id": 105
-}
-```
-
----
-
-### 3. 添加新消息并获得流式回复（POST，流式响应）
-
-**请求：**
-```http
-POST /v1/chat/conversations/2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41/messages
-Authorization: Bearer sk-test-xxxx
-Content-Type: application/json
-
-{
-  "role": "user",
-  "content": "请用C++写冒泡排序",
-  "model": "ChatGPT-4o-Latest",
-  "stream": true
-}
-```
-
-**流式响应示例（text/event-stream）：**
-```
-data: {"user_message_id":106,"assistant_message_id":107,"conversation_id":"2a9f9f7a-7a7f-4d5b-bb2b-04e4bb9fce41"}
-
-data: {"content":"这是C++实现的冒泡排序：\n"}
-data: {"content":"```cpp\n"}
-data: {"content":"void bubbleSort(int arr[], int n) {"}
-data: {"content":" ..."}
-data: {"content":"}\n```"}
-data: {"content":"","finish_reason":"stop"}
-data: [DONE]
-```
-
-
-说明：
-
-* 返回为 SSE 流格式
-* 每段 `data: {"content": "..."}`，最后 `data: [DONE]`
-* 历史自动记录，无需客户端拼接
-
----
-
-## 🧠 会话管理 API（增强）
-
-### ✅ 创建带项目的新会话
-
-```http
+1) 创建会话  
 POST /v1/chat/conversations
-Content-Type: application/json
+- 请求体:
+  - system_prompt?: string
+  - project_id: int (默认 0)
+  - name?: string
+  - model?: string
+  - assistance_role?: string
+  - status?: int (0 正常, 1 存档等；默认 0)
+- 响应: {"conversation_id": "uuid"}
 
-{
-  "system_prompt": "你是一个项目助手。",
-  "project_id": 2
-}
-```
+2) 获取会话列表  
+GET /v1/chat/conversations?project_id={int}&status={int}
+- 响应: Conversation[]（含 status/updated_at 等）
 
----
-
-### ✅ 获取所有会话（按项目分组）
-
-```http
+3) 按项目分组  
 GET /v1/chat/conversations/grouped
-```
+- 响应: { "": Conversation[], ... }
 
----
+4) 会话详情  
+GET /v1/chat/conversations/{conversation_id}
+- 404: 未找到
 
-### ✅ 更新会话信息
-
-```http
+5) 更新会话  
 PUT /v1/chat/conversations/{conversation_id}
-Content-Type: application/json
+- 请求体(任意字段可选): {project_id?, name?, model?, assistance_role?, status?}
+- 响应: {"message":"Conversation updated"} 或 404
 
-{
-  "project_id": 1,
-  "name": "我的新会话",
-  "model": "Claude-3.5-Sonnet",
-  "assistance_role": "产品经理"
-}
-```
-
----
-
-### ✅ 删除会话
-
-```http
+6) 删除会话  
 DELETE /v1/chat/conversations/{conversation_id}
-```
+- 响应: {"message":"Conversation deleted"} 或 404
 
 ---
 
-## 🧹 删除消息 API
+## 消息管理
 
-统一支持删除一条或多条消息。
+1) 获取消息列表  
+GET /v1/chat/conversations/{conversation_id}/messages
+- 响应: {"conversation_id":"...","messages":[Message,...]} 或 404
 
-```http
+2) 追加消息并获取回复（需鉴权）  
+POST /v1/chat/conversations/{conversation_id}/messages
+- 请求体: { role:"user"|"assistant"|..., content:string, model:string="ChatGPT-4o-Latest", stream:bool=false }
+- 非流式响应:
+  - {"conversation_id":"...","reply":"...","user_message_id":int|null,"assistant_message_id":int}
+- SSE 流式:
+  - 首帧: {"user_message_id":int|null,"assistant_message_id":int,"conversation_id":"...","session_id":"..."}
+  - 多帧: {"content":"partial text"}
+  - 完成: {"content":"","finish_reason":"stop"} + [DONE]
+- 忽略用户策略:
+  - 若 role=user 且 content 完全匹配 Config.ignoredUserMessages，则不会入库该 user 消息，但仍可带入上下文
+
+3) 批量删除消息  
 POST /v1/chat/messages/delete
-Content-Type: application/json
+- 请求体: {"message_ids":[int,...]}
+- 响应: {"message":"{n} messages deleted"}
 
-{
-  "message_ids": [12345]  // 或多个 [12345, 12346]
-}
-```
+4) 停止流式会话  
+POST /v1/chat/stop-stream
+- 请求体: {"session_id":"..."}
+- 响应: {"message":"Stream stopped","session_id":"..."}
 
-响应：
+---
 
+## 项目管理
+
+表结构（简要）：  
+id, name(唯一), dev_environment, grpc_server_address, llm_model, llm_url, git_work_dir, ai_work_dir, created_time, updated_time
+
+1) 项目列表  
+GET /v1/projects
+- 响应: Project[]
+
+2) 项目详情  
+GET /v1/projects/{id}
+- 响应: Project 或 404
+
+3) 新建项目  
+POST /v1/projects
+- 请求体(全量字段):
+  - name: string
+  - dev_environment: string
+  - grpc_server_address: string
+  - llm_model?: string = "GPT-4.1"
+  - llm_url?: string = "http://43.132.224.225:8000/v1/chat/completions"
+  - git_work_dir?: string = "/git_workspace"
+  - ai_work_dir?: string = "/aiWorkDir"
+- 响应: 新建 Project（含 created_time/updated_time）
+
+4) 更新项目（部分字段）  
+PUT /v1/projects/{id}
+- 请求体(任意字段可选): 同上字段可选择性提交
+- 响应: 更新后的 Project 或 404
+
+5) 删除项目  
+DELETE /v1/projects/{id}
+- 响应: {"message":"Project deleted successfully"} 或 404
+
+6) 获取完整源码文本  
+GET /v1/projects/{id}/complete-source-code
+- 响应: {"completeSourceCode":""}
+- 说明: 依赖第三方库 code_project_reader 与数据库中的 ai_work_dir 路径
+
+示例创建请求:
 ```json
-{ "message": "2 messages deleted" }
+{
+  "name":"demo",
+  "dev_environment":"python3.11",
+  "grpc_server_address":"192.168.120.238:50051",
+  "llm_model":"GPT-4.1",
+  "llm_url":"http://43.132.224.225:8000/v1/chat/completions",
+  "git_work_dir":"/git_workspace",
+  "ai_work_dir":"/aiWorkDir"
+}
 ```
 
 ---
 
-## 🛠️ 更新消息 API
+## 计划管理
 
-用于更新已有消息内容（如后处理）
-
-```http
-PUT /v1/chat/messages/{message_id}
-Content-Type: application/json
-
-{
-  "content": "更新后的消息内容",
-  "created_at": "2025-07-26T12:00:00"  // 可选
-}
-```
-
-响应：
-
-```json
-{ "message": "Message updated" }
-```
-
----
-
-## 📚 计划类 API
-
-### ✅ 获取计划分类列表
-
-```http
+1) 分类列表  
 GET /v1/plan/categories
-```
+- 响应: [{id,name,prompt_template,message_method,auto_save_category_id,is_builtin,created_time}, ...]
 
-返回：
-
-```json
-[
-  {
-    "id": 1,
-    "name": "需求评审",
-    "prompt_template": "...",
-    "message_method": "...",
-    "is_builtin": true
-  }
-]
-```
-
----
-
-### ✅ 新建计划文档
-
-```http
+2) 新增文档（永远新增版本）  
 POST /v1/plan/documents
-Content-Type: application/json
+- 请求体: {project_id:int, category_id:int, filename:string, content:string, version?:int, source?:"user"|"server"|"chat", related_log_id?:int}
+- 响应: 新记录（含 version 与 created_time）
 
-{
-  "project_id": 1,
-  "category_id": 2,
-  "filename": "新方案设计.md",
-  "content": "文档内容",
-  "version": 1,
-  "source": "chat"
-}
-```
+3) 文档历史  
+GET /v1/plan/documents/history?project_id={int}&category_id={int}&filename={string}
+- 响应: 按 version DESC 的列表
 
 ---
 
-## ❌ 错误响应示例
+## 实现细节与行为说明
 
-```json
-{
-  "detail": "Conversation not found"
-}
+- LLM 后端: poe 或 openai，通过环境变量 LLM_BACKEND 控制，详见 config.py 与 llm_router.py
+- SSE 过滤: 所有以 "Thinking..." 开头的内容会被丢弃
+- 会话活跃度: 任意插入/更新消息会刷新 conversations.updated_at，用于最近活动排序
+- 训练日志: 非流与流式完整响应会记录到 train_data/YYYY-MM-DD.jsonl（见 logger.py）
+- 数据库: 需要 MySQL（见 db.py 的连接参数）
 ```
-
----
-## 获取项目全量源代码 API, 入参项目id,出参completeSourceCode
-示例调用方式
-请求：
-
-GET /v1/projects/2/complete-source-code
-返回：
-json
-{
-  "completeSourceCode": "import os\n\n# main.py\nprint('Hello World')\n..."
-}
-
-**注意：** 需要在项目根目录设置 .gitignore 文件 ，用于排除指定的源码文件
-
----
-
-
-## 停止流式消息生成 API 示例
-
-在发起流式对话时（POST `/v1/chat/conversations/{conversation_id}/messages`，参数 `stream: true`），接口会返回 `session_id`。
-
-当需要主动停止 LLM 继续生成内容时，前端可调用如下 API：
-
-### POST /v1/chat/stop-stream
-
-**请求体参数：**
-
-```json
-{
-  "session_id": "your-session-id-string"
-}
-```
-
-**返回示例：**
-
-```json
-{
-  "message": "Stream stopped",
-  "session_id": "your-session-id-string"
-}
-```
-
-- `session_id` 为流式消息接口返回的 `session_id`
-- 调用后将通知后端终止 LLM 生成内容，及时释放资源
