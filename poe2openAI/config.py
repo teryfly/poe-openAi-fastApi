@@ -1,12 +1,14 @@
 import os
-
 class Config:
     POE_API_KEY = "xxx-xxx-xxx-xxx"  # 替换为你的Poe API密钥
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-test-key-for-compatibility-Test")
     HOST = "0.0.0.0"
     PORT = 8000
     LOG_DIR = "train_data"
-    
+    # 超时配置 - 设置为永不超时
+    TIMEOUT_KEEP_ALIVE = 0  # 0 表示永不超时
+    TIMEOUT_GRACEFUL_SHUTDOWN = 300  # 优雅关闭超时时间
+    TIMEOUT_HTTP = 0  # HTTP 请求超时，0 表示无限制
     # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [
         {
@@ -14,14 +16,14 @@ class Config:
             "object": "model",
             "created": 1715368132,
             "owned_by": "openai/60/60/193",
-            "description": "OpenAI’s latest flagship model with significantly improved coding skills, long context (1M tokens), and improved instruction following."
+            "description": "OpenAI's latest flagship model with significantly improved coding skills, long context (1M tokens), and improved instruction following."
         },
          {
             "id": "GPT-5-Chat",
             "object": "model",
             "created": 171536813,
             "owned_by": "openai/38/38/241",
-            "description": "GPT-5 Chat points to the GPT-5 snapshot currently used in ChatGPT. GPT-5 is OpenAI’s latest flagship model with significantly improved coding skills, long context (400k tokens), and improved instruction following. Supports native vision, and generally has more intelligence than GPT-4.1. "
+            "description": "GPT-5 Chat points to the GPT-5 snapshot currently used in ChatGPT. GPT-5 is OpenAI's latest flagship model with significantly improved coding skills, long context (400k tokens), and improved instruction following. Supports native vision, and generally has more intelligence than GPT-4.1. "
         },       
         {
             "id": "Claude-Sonnet-4-Reasoning",
