@@ -254,3 +254,72 @@ GET /v1/plan/documents/history?project_id={int}&category_id={int}&filename={stri
 - 训练日志: 非流与流式完整响应会记录到 train_data/YYYY-MM-DD.jsonl（见 logger.py）
 - 数据库: 需要 MySQL（见 db.py 的连接参数）
 ```
+
+
+## 写入源码 API 文档开始
+
+```
+POST /v1/write-source-code
+```
+
+### 请求参数
+
+| 字段            | 类型    | 必选 | 说明                     |
+|-----------------|---------|------|--------------------------|
+| root_dir        | string  | 是   | 源码写入的根目录（绝对路径，需有写权限） |
+| files_content   | string  | 是   | 任务定义文件内容（符合规范的结构化文本） |
+| log_level       | string  | 否   | 日志级别，默认 "INFO"    |
+| backup_enabled  | bool    | 否   | 是否启用备份，默认 true  |
+
+#### Body 示例
+
+```json
+{
+  "root_dir": "/absolute/path/to/project",
+  "files_content": "Step [1/1] - 创建文件\nAction: Create file\nFile Path: src/main.py\n```python\nprint('hello world')\n```\n",
+  "log_level": "INFO",
+  "backup_enabled": true
+}
+```
+
+---
+
+### 返回
+
+- **流式返回** `text/event-stream`，每步一个 JSON，格式如下：
+
+```json
+{
+  "message": "任务执行成功",
+  "type": "success",
+  "timestamp": "2025-08-18T14:30:25",
+  "data": {}
+}
+```
+
+- `type` 取值:
+  - `info`: 一般信息
+  - `progress`: 进度信息
+  - `success`: 成功
+  - `error`: 错误
+  - `warning`: 警告
+  - `summary`: 汇总
+
+#### summary 样例
+
+```json
+{
+  "message": "执行完成",
+  "type": "summary",
+  "timestamp": "2025-08-18T14:30:30",
+  "data": {
+    "total_tasks": 5,
+    "successful_tasks": 4,
+    "failed_tasks": 1,
+    "invalid_tasks": 0,
+    "execution_time": "2.34s",
+    "log_file": "log/execution_20250818_143025.log"
+  }
+}
+```
+

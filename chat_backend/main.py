@@ -16,6 +16,8 @@ from routes_misc import register_misc_routes
 from routes_project import router as project_router
 from routes.chat import register_chat_routes 
 
+# === 新增写入源码路由 ===
+from routes.write_source_code import router as write_source_code_router
 
 # === FastAPI App 初始化 ===
 app = FastAPI(
@@ -51,6 +53,9 @@ app.add_middleware(
 register_misc_routes(app)
 register_chat_routes(app)
 app.include_router(project_router)
+
+# === 注册写入源码API路由 ===
+app.include_router(write_source_code_router)
 
 from routes.routes_plan import router as plan_router
 app.include_router(plan_router)
