@@ -16,7 +16,8 @@ class Config:
         "continue, and mark [to be continue] at the last line of your replay if your output is NOT over and wait user's command to be continued",
         "continue",
         "继续",
-        "go on"
+        "go on",
+        "Proceed. If in any step from the previous round of dialogue, a code block delimited by triple backticks (```) was not properly closed, then starting from the step where the code block is incomplete, strictly follow the output format requirements to re-output that step and all subsequent steps."
     ]
   # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [

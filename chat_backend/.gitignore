@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+bin/
+obj/
+node_modules/
+*.csproj
 
 # Jupyter Notebook 缓存
 .ipynb_checkpoints/
