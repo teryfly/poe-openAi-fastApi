@@ -242,6 +242,7 @@ POST /v1/plan/documents
 
 3) 文档历史  
 GET /v1/plan/documents/history?project_id={int}&category_id={int}&filename={string}
+- 两个参数可选
 - 响应: 按 version DESC 的列表
 
 ---
