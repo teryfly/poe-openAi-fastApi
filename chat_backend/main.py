@@ -19,6 +19,10 @@ from routes.chat import register_chat_routes
 # === 新增写入源码路由 ===
 from routes.write_source_code import router as write_source_code_router
 
+# === 新增文档引用路由 ===
+from routes.document_references import router as document_references_router
+from routes.document_references_manage import router as document_references_manage_router
+
 # === FastAPI App 初始化 ===
 app = FastAPI(
     title="OpenAI Compatible API Proxy to Poe & OpenAI",
@@ -56,6 +60,10 @@ app.include_router(project_router)
 
 # === 注册写入源码API路由 ===
 app.include_router(write_source_code_router)
+
+# === 注册文档引用API路由 ===
+app.include_router(document_references_router)
+app.include_router(document_references_manage_router)
 
 from routes.routes_plan import router as plan_router
 app.include_router(plan_router)

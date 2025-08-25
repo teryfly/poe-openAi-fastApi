@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Body, Query
+from fastapi import APIRouter, Body, Query, Path, HTTPException
 from db import get_conn
 from pydantic import BaseModel
 from typing import Optional, List, Literal
 from datetime import datetime
+
 router = APIRouter()
+
 # ------------------ 分类模型 ------------------
 class PlanCategoryModel(BaseModel):
     id: int
@@ -13,6 +15,7 @@ class PlanCategoryModel(BaseModel):
     auto_save_category_id: Optional[int] = None
     is_builtin: bool
     created_time: Optional[str] = None  # 修正类型为str
+
 @router.get("/v1/plan/categories", response_model=List[PlanCategoryModel])
 async def list_plan_categories():
     with get_conn() as conn:
@@ -31,6 +34,7 @@ async def list_plan_categories():
                     row_dict["created_time"] = row_dict["created_time"].isoformat()
                 result.append(row_dict)
             return result
+
 # ------------------ 文档模型 ------------------
 class PlanDocumentCreateRequest(BaseModel):
     project_id: int
@@ -40,6 +44,12 @@ class PlanDocumentCreateRequest(BaseModel):
     version: Optional[int] = 1
     source: Optional[Literal['user', 'server', 'chat']] = 'user'
     related_log_id: Optional[int] = None
+
+class PlanDocumentUpdateRequest(BaseModel):
+    filename: Optional[str] = None
+    content: Optional[str] = None
+    source: Optional[Literal['user', 'server', 'chat']] = None
+
 class PlanDocumentResponse(BaseModel):
     id: int
     project_id: int
@@ -50,6 +60,7 @@ class PlanDocumentResponse(BaseModel):
     source: str
     related_log_id: Optional[int]
     created_time: Optional[str] = None  # 修正类型为str
+
 @router.post("/v1/plan/documents", response_model=PlanDocumentResponse)
 async def create_plan_document(doc: PlanDocumentCreateRequest = Body(...)):
     with get_conn() as conn:
@@ -62,6 +73,7 @@ async def create_plan_document(doc: PlanDocumentCreateRequest = Body(...)):
             row = cursor.fetchone()
             max_version = row[0] if row and row[0] is not None else 0
             new_version = max_version + 1
+            
             # 永远新增，不删除或覆盖老版本
             cursor.execute("""
                 INSERT INTO plan_documents 
@@ -87,6 +99,7 @@ async def create_plan_document(doc: PlanDocumentCreateRequest = Body(...)):
             if row_dict.get("created_time") and isinstance(row_dict["created_time"], datetime):
                 row_dict["created_time"] = row_dict["created_time"].isoformat()
             return row_dict
+
 @router.get("/v1/plan/documents/history", response_model=List[PlanDocumentResponse])
 async def list_document_history(
     project_id: int = Query(..., description="项目ID"),
@@ -134,3 +147,90 @@ async def list_document_history(
                     row_dict["created_time"] = row_dict["created_time"].isoformat()
                 result.append(row_dict)
             return result
+
+# ========== 新增：文档详情查看和编辑API ==========
+
+@router.get("/v1/plan/documents/{document_id}", response_model=PlanDocumentResponse)
+async def get_plan_document(document_id: int = Path(...)):
+    """
+    获取单个文档的详细信息
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, project_id, category_id, filename, content, version, source, related_log_id, created_time
+                FROM plan_documents WHERE id=%s
+            """, (document_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Document not found")
+            
+            columns = [col[0] for col in cursor.description]
+            row_dict = dict(zip(columns, row))
+            if row_dict.get("created_time") and isinstance(row_dict["created_time"], datetime):
+                row_dict["created_time"] = row_dict["created_time"].isoformat()
+            return row_dict
+
+@router.put("/v1/plan/documents/{document_id}", response_model=PlanDocumentResponse)
+async def update_plan_document(
+    document_id: int = Path(...),
+    doc: PlanDocumentUpdateRequest = Body(...)
+):
+    """
+    更新文档信息，会创建新版本而不是覆盖原有版本
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cursor:
+            # 先获取原文档信息
+            cursor.execute("""
+                SELECT project_id, category_id, filename, content, version, source, related_log_id
+                FROM plan_documents WHERE id=%s
+            """, (document_id,))
+            original_row = cursor.fetchone()
+            if not original_row:
+                raise HTTPException(status_code=404, detail="Document not found")
+            
+            # 构建更新后的数据
+            project_id, category_id, orig_filename, orig_content, orig_version, orig_source, orig_related_log_id = original_row
+            
+            new_filename = doc.filename if doc.filename is not None else orig_filename
+            new_content = doc.content if doc.content is not None else orig_content
+            new_source = doc.source if doc.source is not None else orig_source
+            
+            # 查询同名文档的最大version
+            cursor.execute("""
+                SELECT MAX(version) FROM plan_documents 
+                WHERE project_id=%s AND category_id=%s AND filename=%s
+            """, (project_id, category_id, new_filename))
+            row = cursor.fetchone()
+            max_version = row[0] if row and row[0] is not None else 0
+            new_version = max_version + 1
+            
+            # 创建新版本
+            cursor.execute("""
+                INSERT INTO plan_documents 
+                    (project_id, category_id, filename, content, version, source, related_log_id, created_time)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (
+                project_id,
+                category_id,
+                new_filename,
+                new_content,
+                new_version,
+                new_source,
+                orig_related_log_id
+            ))
+            
+            new_id = cursor.lastrowid
+            
+            # 返回新创建的文档
+            cursor.execute("""
+                SELECT id, project_id, category_id, filename, content, version, source, related_log_id, created_time
+                FROM plan_documents WHERE id=%s
+            """, (new_id,))
+            row = cursor.fetchone()
+            columns = [col[0] for col in cursor.description]
+            row_dict = dict(zip(columns, row))
+            if row_dict.get("created_time") and isinstance(row_dict["created_time"], datetime):
+                row_dict["created_time"] = row_dict["created_time"].isoformat()
+            return row_dict
