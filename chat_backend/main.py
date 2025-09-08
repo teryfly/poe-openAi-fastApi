@@ -23,6 +23,9 @@ from routes.write_source_code import router as write_source_code_router
 from routes.document_references import router as document_references_router
 from routes.document_references_manage import router as document_references_manage_router
 
+# === 引入重构后的计划模块路由 ===
+from routes.plan import router as plan_router
+
 # === FastAPI App 初始化 ===
 app = FastAPI(
     title="OpenAI Compatible API Proxy to Poe & OpenAI",
@@ -41,6 +44,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": str(exc)},
     )
+
 # === CORS 设置 ===
 app.add_middleware(
     CORSMiddleware,
@@ -65,7 +69,7 @@ app.include_router(write_source_code_router)
 app.include_router(document_references_router)
 app.include_router(document_references_manage_router)
 
-from routes.routes_plan import router as plan_router
+# === 注册计划模块路由（分类 + 文档） ===
 app.include_router(plan_router)
 
 # === 启动函数 ===

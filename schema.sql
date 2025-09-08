@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS plan_categories (
     is_builtin BOOLEAN DEFAULT FALSE COMMENT 'Whether it is a built-in category',
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE `plan_categories` ADD COLUMN `summary_model` VARCHAR(64) DEFAULT 'GPT-4.1';
 
 -- Plan Documents Table (先创建，不包含外键到execution_logs)
 CREATE TABLE IF NOT EXISTS plan_documents (

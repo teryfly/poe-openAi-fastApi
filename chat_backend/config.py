@@ -17,7 +17,7 @@ class Config:
         "continue",
         "继续",
         "go on",
-        "Go on. If an incomplete code block (```) exists from the previous dialogue, find the first step where it occurred. From that point on, regenerate all subsequent steps in the correct format. Skip any steps that were already properly completed."
+        "Go on. If any incomplete code block (```) exists from the last output, find the/these incomplete Step(s) and regenerate it/them. Skip any steps that were already properly completed."
     ]
   # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [

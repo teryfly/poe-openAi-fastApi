@@ -2,8 +2,15 @@
 
 本文档整理了“计划（文档）分类”的完整 REST API，包括列表、详情、创建、更新与删除（级联删除关联数据）。
 
-基础路径前缀：无（同服务根路径）
+说明与更新：
+- 新增字段 summary_model（varchar(64)，默认值 "GPT-4.1"），已应用到所有读写接口
+- 路由代码已重构为模块化结构：
+  - routes/plan/categories.py（分类相关）
+  - routes/plan/documents.py（文档相关）
+  - routes/plan/models.py（Pydantic 模型）
+  - 在应用中通过 from routes.plan import router 注册
 
+通用说明：
 - 返回时间字段均为 ISO8601 字符串
 - 错误统一返回格式：{"detail": "错误描述"}
 
@@ -24,6 +31,7 @@ GET /v1/plan/categories
     "message_method": "PlanGetRequest",
     "auto_save_category_id": null,
     "is_builtin": true,
+    "summary_model": "GPT-4.1",
     "created_time": "2025-01-01T10:00:00"
   }
 ]
@@ -45,6 +53,7 @@ GET /v1/plan/categories/{category_id}
   "message_method": "PlanExecuteRequest",
   "auto_save_category_id": null,
   "is_builtin": false,
+  "summary_model": "GPT-4.1",
   "created_time": "2025-01-02T10:00:00"
 }
 
@@ -63,7 +72,8 @@ POST /v1/plan/categories
   "prompt_template": "模板内容",
   "message_method": "PlanExecuteRequest",
   "auto_save_category_id": null,
-  "is_builtin": false
+  "is_builtin": false,
+  "summary_model": "GPT-4.1"
 }
 
 - 字段说明
@@ -72,6 +82,7 @@ POST /v1/plan/categories
   - message_method: string 必填，对应处理方法名称
   - auto_save_category_id: int|null 可选，自动保存的分类ID（可为 null）
   - is_builtin: boolean 可选，是否内置，默认 false
+  - summary_model: string 可选，总结/生成时默认使用的模型，默认 "GPT-4.1"
 
 - 响应 200（创建后的完整对象）
 
@@ -82,6 +93,7 @@ POST /v1/plan/categories
   "message_method": "PlanExecuteRequest",
   "auto_save_category_id": null,
   "is_builtin": false,
+  "summary_model": "GPT-4.1",
   "created_time": "2025-01-03T10:00:00"
 }
 
@@ -104,7 +116,8 @@ PUT /v1/plan/categories/{category_id}
   "prompt_template": "新模板",
   "message_method": "PlanGetRequest",
   "auto_save_category_id": -1,
-  "is_builtin": true
+  "is_builtin": true,
+  "summary_model": "GPT-5-Chat"
 }
 
 - 响应 200（更新后的完整对象）
@@ -116,6 +129,7 @@ PUT /v1/plan/categories/{category_id}
   "message_method": "PlanGetRequest",
   "auto_save_category_id": null,
   "is_builtin": true,
+  "summary_model": "GPT-5-Chat",
   "created_time": "2025-01-03T10:00:00"
 }
 
@@ -166,6 +180,7 @@ PlanCategoryModel
 - message_method: string
 - auto_save_category_id: int|null
 - is_builtin: bool
+- summary_model: string|null
 - created_time: string|null
 
 PlanCategoryCreateRequest
@@ -174,6 +189,7 @@ PlanCategoryCreateRequest
 - message_method: string
 - auto_save_category_id: int|null
 - is_builtin: bool（默认 false）
+- summary_model: string（默认 "GPT-4.1"）
 
 PlanCategoryUpdateRequest
 - name?: string
@@ -181,3 +197,4 @@ PlanCategoryUpdateRequest
 - message_method?: string
 - auto_save_category_id?: int|null（置空请传 -1）
 - is_builtin?: bool
+- summary_model?: string
