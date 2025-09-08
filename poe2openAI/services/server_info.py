@@ -1,0 +1,36 @@
+from typing import List
+from config import Config
+
+def startup_banner() -> str:
+    lines: List[str] = []
+    lines.append("=" * 60)
+    lines.append("🚀 OpenAI Compatible API Proxy to Poe v2.2 (Attachments Enabled)")
+    lines.append("=" * 60)
+    lines.append(f"📡 服务地址: http://{Config.HOST}:{Config.PORT}")
+    lines.append(f"📋 API文档: http://{Config.HOST}:{Config.PORT}/docs")
+    lines.append(f"🔧 ReDoc文档: http://{Config.HOST}:{Config.PORT}/redoc")
+    lines.append("=" * 60)
+    lines.append("🎯 主要接口:")
+    lines.append(f"   • 聊天完成: POST http://{Config.HOST}:{Config.PORT}/v1/chat/completions")
+    lines.append(f"   • 模型列表: GET  http://{Config.HOST}:{Config.PORT}/v1/models")
+    lines.append(f"   • 健康检查: GET  http://{Config.HOST}:{Config.PORT}/health")
+    lines.append(f"   • 文件下载: GET  http://{Config.HOST}:{Config.PORT}/files/{{filename}}")
+    lines.append("=" * 60)
+    lines.append("📊 支持的Poe模型:")
+    for model in Config.POE_MODELS:
+        lines.append(f"   • {model['id']} ({model['owned_by']})")
+    lines.append("=" * 60)
+    lines.append(f"💾 日志目录: {Config.LOG_DIR}")
+    lines.append(f"📁 附件目录: {Config.ATTACHMENTS_DIR}")
+    lines.append(f"🔑 环境变量 OPENAI_API_KEY: {Config.OPENAI_API_KEY}")
+    lines.append("=" * 60)
+    lines.append("✨ 新特性:")
+    lines.append("   • 直接使用Poe模型名称（无映射）")
+    lines.append("   • OpenHands自动注入函数调用提示词")
+    lines.append("   • 完整的结构化内容处理")
+    lines.append("   • 自动角色转换 (assistant ↔ bot)")
+    lines.append("   • 增强的异步生成器处理")
+    lines.append("   • 永不超时配置")
+    lines.append("   • 同端点支持 multipart 文件上传 + 文字")
+    lines.append("=" * 60)
+    return "\n".join(lines)

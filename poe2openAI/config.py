@@ -9,8 +9,24 @@ class Config:
     TIMEOUT_KEEP_ALIVE = 0  # 0 表示永不超时
     TIMEOUT_GRACEFUL_SHUTDOWN = 300  # 优雅关闭超时时间
     TIMEOUT_HTTP = 0  # HTTP 请求超时，0 表示无限制
+
+    # 附件相关配置
+    ATTACHMENTS_DIR = os.getenv("ATTACHMENTS_DIR", "attachments")
+    ATTACHMENT_MAX_SIZE_MB = float(os.getenv("ATTACHMENT_MAX_SIZE_MB", "20"))  # 单文件最大MB
+    ATTACHMENT_ALLOWED_TYPES = set(
+        (os.getenv("ATTACHMENT_ALLOWED_TYPES", "image/png,image/jpeg,image/webp,application/pdf")).split(",")
+    )
+    ATTACHMENT_BASE_URL = os.getenv("ATTACHMENT_BASE_URL", "")  # 若前置有反向代理提供文件服务，可设置为 http(s)://host/path
+
     # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [
+        {
+            "id": "GPT-4o",
+            "object": "model",
+            "created": 1715368131,
+            "owned_by": "openai/70/30",
+            "description": "OpenAI's GPT-4o answers user prompts in a natural, engaging & tailored writing with strong overall world knowledge. Uses GPT-Image-1 to create and edit images conversationally. For fine-grained image generation control (e.g. image quality)."
+        },
         {
             "id": "GPT-4.1",
             "object": "model",
