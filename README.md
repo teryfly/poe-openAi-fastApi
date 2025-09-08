@@ -306,6 +306,34 @@ POST /v1/write-source-code
   - `warning`: 警告
   - `summary`: 汇总
 
+data 字段的结构
+
+data 的具体内容取决于当前返回的 type：
+
+
+#### 普通步骤
+即当 type = "success", "info", "progress", "warning", "error"时，data 是一个与当前任务步骤相关的键值对，例如：
+
+{
+  "message": "任务执行成功",
+  "type": "success",
+  "timestamp": "2025-08-18T14:30:25",
+  "data": {
+    "step_index": 1,
+    "action": "create_file",
+    "file_path": "src/main.py",
+    "backup_path": "backup/src/main.py.bak"
+  }
+}
+
+step_index：步骤序号
+
+action：执行的操作类型（如 create_file, update_file, delete_file）
+
+file_path：涉及的文件路径（相对或绝对）
+
+backup_path：如果开启了备份，备份文件存放路径
+
 #### summary 样例
 
 ```json

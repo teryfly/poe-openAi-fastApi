@@ -19,3 +19,4 @@ plan_manager.ini
 
 # System files
 .DS_Store
+train_data/
