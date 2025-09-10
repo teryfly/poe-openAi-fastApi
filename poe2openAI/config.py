@@ -21,6 +21,13 @@ class Config:
     # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [
         {
+            "id": "GPT-OSS-120B-T",
+            "object": "model",
+            "created": 1715368130,
+            "owned_by": "openai/50",
+            "description": "GPT-OSS-120B-T is an open-source model trained on a diverse range of internet text, designed to generate human-like text based on the input it receives. It excels in various natural language processing tasks, including text generation, summarization, and translation."
+        },
+        {
             "id": "GPT-4o",
             "object": "model",
             "created": 1715368131,
