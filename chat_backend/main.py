@@ -69,7 +69,7 @@ app.include_router(write_source_code_router)
 app.include_router(document_references_router)
 app.include_router(document_references_manage_router)
 
-# === 注册计划模块路由（分类 + 文档） ===
+# === 注册计划模块路由（分类 + 文档 + 最新列表/迁移） ===
 app.include_router(plan_router)
 
 # === 启动函数 ===
