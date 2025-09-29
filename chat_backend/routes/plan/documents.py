@@ -158,3 +158,136 @@ async def update_plan_document(
             d = _row_to_dict(cursor, row)
             d["created_time"] = _iso(d.get("created_time"))
             return d
+
+@router.delete("/v1/plan/documents/{document_id}")
+async def delete_plan_document(document_id: int = Path(...)):
+    """
+    删除单个文档版本（按 document_id），并显式统计关联清理数量。
+    在一个事务中完成。
+    """
+    with get_conn() as conn:
+        try:
+            conn.begin()
+        except Exception:
+            # autocommit True 下 begin 可能不是必须，但确保事务性
+            pass
+        with conn.cursor() as cursor:
+            # 校验存在
+            cursor.execute("SELECT 1 FROM plan_documents WHERE id=%s", (document_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail="Document not found")
+
+            removed_refs = removed_logs = removed_tags = removed_docs = 0
+
+            # 显式删除关联，便于统计（即使外键可级联）
+            cursor.execute("DELETE FROM document_references WHERE document_id=%s", (document_id,))
+            removed_refs = cursor.rowcount
+
+            cursor.execute("DELETE FROM execution_logs WHERE document_id=%s", (document_id,))
+            removed_logs = cursor.rowcount
+
+            cursor.execute("DELETE FROM document_tags WHERE document_id=%s", (document_id,))
+            removed_tags = cursor.rowcount
+
+            # 删除文档本身
+            cursor.execute("DELETE FROM plan_documents WHERE id=%s", (document_id,))
+            removed_docs = cursor.rowcount
+
+            if removed_docs == 0:
+                # 极少数并发情况下被删
+                conn.rollback()
+                raise HTTPException(status_code=404, detail="Document not found")
+
+            try:
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+
+            return {
+                "message": "Document deleted successfully",
+                "deleted": {
+                    "document_references": removed_refs,
+                    "execution_logs": removed_logs,
+                    "document_tags": removed_tags,
+                    "plan_documents": removed_docs
+                }
+            }
+
+@router.delete("/v1/plan/documents")
+async def delete_all_versions(
+    project_id: int = Query(..., description="项目ID"),
+    category_id: int = Query(..., description="分类ID"),
+    filename: str = Query(..., description="文件名（删除该文件的全部历史版本）")
+):
+    """
+    删除某文件的全部历史版本（按 project_id + category_id + filename），并显式统计关联清理数量。
+    在一个事务中完成。
+    """
+    filename = (filename or "").strip()
+    if not filename:
+        raise HTTPException(status_code=400, detail="filename cannot be empty")
+
+    with get_conn() as conn:
+        try:
+            conn.begin()
+        except Exception:
+            pass
+        with conn.cursor() as cursor:
+            # 找出所有版本ID
+            cursor.execute("""
+                SELECT id FROM plan_documents
+                WHERE project_id=%s AND category_id=%s AND filename=%s
+            """, (project_id, category_id, filename))
+            id_rows = cursor.fetchall()
+            ids = [r[0] for r in id_rows]
+
+            if not ids:
+                conn.rollback()
+                raise HTTPException(status_code=404, detail="No documents found")
+
+            removed_refs = removed_logs = removed_tags = removed_docs = 0
+            placeholders = ",".join(["%s"] * len(ids))
+            ids_tuple = tuple(ids)
+
+            # 显式删除关联（统计数量）
+            cursor.execute(
+                f"DELETE FROM document_references WHERE document_id IN ({placeholders})",
+                ids_tuple
+            )
+            removed_refs = cursor.rowcount
+
+            cursor.execute(
+                f"DELETE FROM execution_logs WHERE document_id IN ({placeholders})",
+                ids_tuple
+            )
+            removed_logs = cursor.rowcount
+
+            cursor.execute(
+                f"DELETE FROM document_tags WHERE document_id IN ({placeholders})",
+                ids_tuple
+            )
+            removed_tags = cursor.rowcount
+
+            # 删除文档本身
+            cursor.execute(
+                f"DELETE FROM plan_documents WHERE id IN ({placeholders})",
+                ids_tuple
+            )
+            removed_docs = cursor.rowcount
+
+            try:
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+
+            return {
+                "message": "All versions deleted successfully",
+                "deleted": {
+                    "document_references": removed_refs,
+                    "execution_logs": removed_logs,
+                    "document_tags": removed_tags,
+                    "plan_documents": removed_docs
+                }
+            }
