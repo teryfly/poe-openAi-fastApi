@@ -26,6 +26,9 @@ from routes.document_references_manage import router as document_references_mana
 # === 引入重构后的计划模块路由 ===
 from routes.plan import router as plan_router
 
+# === 新增上传文件路由 ===
+from routes.upload_file import router as upload_file_router
+
 # === FastAPI App 初始化 ===
 app = FastAPI(
     title="OpenAI Compatible API Proxy to Poe & OpenAI",
@@ -50,12 +53,19 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        "http://localhost:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 挂载静态目录用于附件访问（仅当未配置外部 BASE_URL 时）
+from fastapi.staticfiles import StaticFiles
+os.makedirs(Config.ATTACHMENTS_DIR, exist_ok=True)
+if not Config.ATTACHMENT_BASE_URL:
+    app.mount("/files", StaticFiles(directory=Config.ATTACHMENTS_DIR), name="files")
 
 # === 注册路由 ===
 register_misc_routes(app)
@@ -71,6 +81,9 @@ app.include_router(document_references_manage_router)
 
 # === 注册计划模块路由（分类 + 文档 + 最新列表/迁移） ===
 app.include_router(plan_router)
+
+# === 注册上传文件路由 ===
+app.include_router(upload_file_router)
 
 # === 启动函数 ===
 def start_server():

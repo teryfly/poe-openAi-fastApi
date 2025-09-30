@@ -1,7 +1,7 @@
 import os
 
 class Config:
-    POE_API_KEY = "xxxxx-xxxxx-xxxxx-xxxxx"
+    POE_API_KEY = "xxxxx-xxxxx-xxxxx"
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-test-key-for-compatibility-Test")
     # 自定义 OpenAI 兼容 API 服务端 URL
     OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://43.132.224.225:8000/v1")
@@ -53,8 +53,14 @@ class Config:
             "id": "Claude-Sonnet-4",
             "object": "model",
             "created": 1729641600,
-            "owned_by": "anthropic/115/115/911",
+            "owned_by": "anthropic/92/400",
             "description": "Anthropic's Claude 4 Sonnet using the 2025 model snapshot"
+        },        {
+            "id": "Claude-Sonnet-4.5",
+            "object": "model",
+            "created": 1729641600,
+            "owned_by": "anthropic/92/400",
+            "description": "Claude Sonnet 4.5 represents a major leap forward in AI capability and alignment.  distinguished by dramatic improvements in reasoning, mathematics, and real-world coding. Supports 200k tokens of context."
         },
         {
             "id": "Claude-3.7-Sonnet",
@@ -120,3 +126,12 @@ class Config:
             "description": "GPT-3.5 Turbo model via Poe"
         }
     ]
+
+    # 附件相关配置
+    ATTACHMENTS_DIR = os.getenv("ATTACHMENTS_DIR", "attachments")
+    ATTACHMENT_MAX_SIZE_MB = int(os.getenv("ATTACHMENT_MAX_SIZE_MB", "20"))
+    ATTACHMENT_ALLOWED_TYPES = os.getenv(
+        "ATTACHMENT_ALLOWED_TYPES",
+        "image/png,image/jpeg,image/webp,application/pdf"
+    )
+    ATTACHMENT_BASE_URL = os.getenv("ATTACHMENT_BASE_URL", "").strip()  # 若设置则使用该前缀构建URL
