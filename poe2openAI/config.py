@@ -21,33 +21,54 @@ class Config:
     # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [
         {
+            "id": "Qwen3-Coder",
+            "object": "model",
+            "created": 131536811,
+            "owned_by": "300",
+            "description": "400k tokens) "
+        }, 
+        {
             "id": "GPT-OSS-120B-T",
             "object": "model",
             "created": 1715368130,
             "owned_by": "openai/50",
             "description": "GPT-OSS-120B-T is an open-source model trained on a diverse range of internet text, designed to generate human-like text based on the input it receives. It excels in various natural language processing tasks, including text generation, summarization, and translation."
         },
-        {
-            "id": "GPT-4o",
+       {
+            "id": "GPT-5-Chat",
             "object": "model",
-            "created": 1715368131,
-            "owned_by": "openai/70/30",
-            "description": "OpenAI's GPT-4o answers user prompts in a natural, engaging & tailored writing with strong overall world knowledge. Uses GPT-Image-1 to create and edit images conversationally. For fine-grained image generation control (e.g. image quality)."
-        },
+            "created": 171536813,
+            "owned_by": "openai/38/38/300",
+            "description": "400k tokens) "
+        }, 
+        {
+            "id": "GPT-5-Codex",
+            "object": "model",
+            "created": 181536813,
+            "owned_by": "openai/38/38/300",
+            "description": "400k tokens) "
+        }, 
+        {
+            "id": "GPT-5-Pro",
+            "object": "model",
+            "created": 181536818,
+            "owned_by": "openai/450/3600",
+            "description": "400k tokens) "
+        }, 
+        {
+            "id": "GPT-5",
+            "object": "model",
+            "created": 171536814,
+            "owned_by": "openai/38/38/300",
+            "description": "400k tokens) "
+        },   
         {
             "id": "GPT-4.1",
             "object": "model",
             "created": 1715368132,
             "owned_by": "openai/60/60/193",
-            "description": "OpenAI's latest flagship model with significantly improved coding skills, long context (1M tokens), and improved instruction following."
-        },
-         {
-            "id": "GPT-5-Chat",
-            "object": "model",
-            "created": 171536813,
-            "owned_by": "openai/38/38/241",
-            "description": "GPT-5 Chat points to the GPT-5 snapshot currently used in ChatGPT. GPT-5 is OpenAI's latest flagship model with significantly improved coding skills, long context (400k tokens), and improved instruction following. Supports native vision, and generally has more intelligence than GPT-4.1. "
-        },       
+            "description": "long context (1M tokens)"
+        }, 
         {
             "id": "Claude-Sonnet-4-Reasoning",
             "object": "model",
@@ -61,6 +82,13 @@ class Config:
             "created": 1729641600,
             "owned_by": "anthropic/115/115/911",
             "description": "Anthropic's Claude 4 Sonnet using the 2025 model snapshot"
+        },
+        {
+            "id": "Claude-Sonnet-4.5",
+            "object": "model",
+            "created": 1729641600,
+            "owned_by": "anthropic/92/400",
+            "description": "Claude Sonnet 4.5 represents a major leap forward in AI capability and alignment.  distinguished by dramatic improvements in reasoning, mathematics, and real-world coding. Supports 200k tokens of context."
         },
         {
             "id": "Claude-3.7-Sonnet",

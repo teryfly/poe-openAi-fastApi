@@ -50,6 +50,6 @@ htmlcov/
 
 output/
 input/
-
+.gitlab/
 *.sql
 .git/

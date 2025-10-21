@@ -3,11 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
 import traceback
-# 修正：兼容 pip/wheel 安装的 package 命名
-try:
-    from codefileexecutorlib import CodeFileExecutor
-except ImportError:
-    from codefileexecutorlib import CodeFileExecutor
+from codefileexecutorlib import CodeFileExecutor
 from auth import verify_api_key
 router = APIRouter()
 class WriteSourceCodeRequest(BaseModel):
