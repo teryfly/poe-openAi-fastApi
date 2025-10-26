@@ -6,6 +6,8 @@ from .models import (
     PlanDocumentCreateRequest,
     PlanDocumentUpdateRequest,
     PlanDocumentResponse,
+    MergeDocumentsRequest,
+    MergeDocumentsResponse,
 )
 
 router = APIRouter()
@@ -17,11 +19,21 @@ def _row_to_dict(cursor, row):
 def _iso(dt):
     return dt.isoformat() if isinstance(dt, datetime) else dt
 
+def _to_int_or_none(val: Optional[str]) -> Optional[int]:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if s == "":
+        return None
+    try:
+        return int(s)
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Invalid integer: {val}")
+
 @router.post("/v1/plan/documents", response_model=PlanDocumentResponse)
 async def create_plan_document(doc: PlanDocumentCreateRequest = Body(...)):
     with get_conn() as conn:
         with conn.cursor() as cursor:
-            # 查询同名文档的最大version
             cursor.execute("""
                 SELECT MAX(version) FROM plan_documents 
                 WHERE project_id=%s AND category_id=%s AND filename=%s
@@ -56,25 +68,28 @@ async def create_plan_document(doc: PlanDocumentCreateRequest = Body(...)):
 @router.get("/v1/plan/documents/history", response_model=List[PlanDocumentResponse])
 async def list_document_history(
     project_id: int = Query(..., description="项目ID"),
-    category_id: Optional[int] = Query(None, description="分类ID（可选）"),
-    filename: Optional[str] = Query(None, description="文档名（可选）")
+    category_id: Optional[str] = Query(None, description="分类ID（可选；允许空字符串）"),
+    filename: Optional[str] = Query(None, description="文档名（可选；允许空字符串）")
 ):
     with get_conn() as conn:
         with conn.cursor() as cursor:
-            if category_id is not None and filename is not None:
+            cat_id = _to_int_or_none(category_id)
+            fn = None if filename is None or str(filename).strip() == "" else str(filename).strip()
+
+            if cat_id is not None and fn is not None:
                 cursor.execute("""
                     SELECT id, project_id, category_id, filename, content, version, source, related_log_id, created_time
                     FROM plan_documents
                     WHERE project_id=%s AND category_id=%s AND filename=%s
                     ORDER BY version DESC
-                """, (project_id, category_id, filename))
-            elif category_id is not None and filename is None:
+                """, (project_id, cat_id, fn))
+            elif cat_id is not None and fn is None:
                 cursor.execute("""
                     SELECT id, project_id, category_id, filename, content, version, source, related_log_id, created_time
                     FROM plan_documents
                     WHERE project_id=%s AND category_id=%s
                     ORDER BY created_time DESC, id DESC
-                """, (project_id, category_id))
+                """, (project_id, cat_id))
             else:
                 cursor.execute("""
                     SELECT id, project_id, category_id, filename, content, version, source, related_log_id, created_time
@@ -112,7 +127,6 @@ async def update_plan_document(
 ):
     with get_conn() as conn:
         with conn.cursor() as cursor:
-            # 取原文档
             cursor.execute("""
                 SELECT project_id, category_id, filename, content, version, source, related_log_id
                 FROM plan_documents WHERE id=%s
@@ -161,25 +175,18 @@ async def update_plan_document(
 
 @router.delete("/v1/plan/documents/{document_id}")
 async def delete_plan_document(document_id: int = Path(...)):
-    """
-    删除单个文档版本（按 document_id），并显式统计关联清理数量。
-    在一个事务中完成。
-    """
     with get_conn() as conn:
         try:
             conn.begin()
         except Exception:
-            # autocommit True 下 begin 可能不是必须，但确保事务性
             pass
         with conn.cursor() as cursor:
-            # 校验存在
             cursor.execute("SELECT 1 FROM plan_documents WHERE id=%s", (document_id,))
             if not cursor.fetchone():
                 raise HTTPException(status_code=404, detail="Document not found")
 
             removed_refs = removed_logs = removed_tags = removed_docs = 0
 
-            # 显式删除关联，便于统计（即使外键可级联）
             cursor.execute("DELETE FROM document_references WHERE document_id=%s", (document_id,))
             removed_refs = cursor.rowcount
 
@@ -189,12 +196,10 @@ async def delete_plan_document(document_id: int = Path(...)):
             cursor.execute("DELETE FROM document_tags WHERE document_id=%s", (document_id,))
             removed_tags = cursor.rowcount
 
-            # 删除文档本身
             cursor.execute("DELETE FROM plan_documents WHERE id=%s", (document_id,))
             removed_docs = cursor.rowcount
 
             if removed_docs == 0:
-                # 极少数并发情况下被删
                 conn.rollback()
                 raise HTTPException(status_code=404, detail="Document not found")
 
@@ -220,10 +225,6 @@ async def delete_all_versions(
     category_id: int = Query(..., description="分类ID"),
     filename: str = Query(..., description="文件名（删除该文件的全部历史版本）")
 ):
-    """
-    删除某文件的全部历史版本（按 project_id + category_id + filename），并显式统计关联清理数量。
-    在一个事务中完成。
-    """
     filename = (filename or "").strip()
     if not filename:
         raise HTTPException(status_code=400, detail="filename cannot be empty")
@@ -234,7 +235,6 @@ async def delete_all_versions(
         except Exception:
             pass
         with conn.cursor() as cursor:
-            # 找出所有版本ID
             cursor.execute("""
                 SELECT id FROM plan_documents
                 WHERE project_id=%s AND category_id=%s AND filename=%s
@@ -250,7 +250,6 @@ async def delete_all_versions(
             placeholders = ",".join(["%s"] * len(ids))
             ids_tuple = tuple(ids)
 
-            # 显式删除关联（统计数量）
             cursor.execute(
                 f"DELETE FROM document_references WHERE document_id IN ({placeholders})",
                 ids_tuple
@@ -269,7 +268,6 @@ async def delete_all_versions(
             )
             removed_tags = cursor.rowcount
 
-            # 删除文档本身
             cursor.execute(
                 f"DELETE FROM plan_documents WHERE id IN ({placeholders})",
                 ids_tuple
@@ -291,3 +289,55 @@ async def delete_all_versions(
                     "plan_documents": removed_docs
                 }
             }
+
+@router.post("/v1/plan/documents/merge", response_model=MergeDocumentsResponse)
+async def merge_documents(body: MergeDocumentsRequest = Body(...)):
+    """
+    合并文档内容：
+    入参：{"document_ids":[...]}
+    - 按传入顺序读取每个文档的 filename（作为标题）、version、content
+    - 以以下格式拼接，每个文档之间空行分隔：
+      --- [文档标题]- 版本[文档版本] 开始 ---
+      [文档内容]
+      --- [文档标题]- 版本[文档版本] 结束 ---
+    返回：{"count": n, "merged": "..."}
+    """
+    ids = body.document_ids or []
+    # 规范化与去重但保留顺序
+    cleaned: List[int] = []
+    for x in ids:
+        try:
+            xi = int(x)
+            if xi > 0 and xi not in cleaned:
+                cleaned.append(xi)
+        except Exception:
+            continue
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="document_ids cannot be empty")
+
+    placeholders = ",".join(["%s"] * len(cleaned))
+    order_field = ",".join(["%s"] * len(cleaned))  # for FIELD order
+    sql = f"""
+        SELECT id, filename, version, content
+        FROM plan_documents
+        WHERE id IN ({placeholders})
+        ORDER BY FIELD(id, {order_field})
+    """
+    params = tuple(cleaned + cleaned)
+    with get_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            if not rows:
+                raise HTTPException(status_code=404, detail="Documents not found")
+            cols = [c[0] for c in cursor.description]
+            parts: List[str] = []
+            for row in rows:
+                d = dict(zip(cols, row))
+                title = (d.get("filename") or "").strip() or f"document_{d.get('id')}"
+                version = d.get("version")
+                content = d.get("content") or ""
+                segment = f"--- {title}- 版本[{version}] 开始 ---\n{content}\n--- {title}- 版本[{version}] 结束 ---"
+                parts.append(segment)
+            merged_text = "\n\n".join(parts)
+            return MergeDocumentsResponse(count=len(parts), merged=merged_text)

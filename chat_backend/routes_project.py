@@ -42,7 +42,7 @@ def _row_to_dict(cursor, row):
 async def list_projects():
     with get_conn() as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM projects ORDER BY id DESC")
+            cursor.execute("SELECT * FROM projects ORDER BY updated_time DESC, created_time DESC")
             rows = cursor.fetchall()
             return [_row_to_dict(cursor, row) for row in rows]
 @router.get("/v1/projects/{project_id}", response_model=ProjectResponse)

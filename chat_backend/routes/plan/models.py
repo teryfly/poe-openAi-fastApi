@@ -53,3 +53,11 @@ class PlanDocumentResponse(BaseModel):
     source: str
     related_log_id: Optional[int]
     created_time: Optional[str] = None
+
+# -------- Merge API Models --------
+class MergeDocumentsRequest(BaseModel):
+    document_ids: List[int]
+
+class MergeDocumentsResponse(BaseModel):
+    count: int
+    merged: str
