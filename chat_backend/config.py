@@ -29,7 +29,7 @@ class Config:
             "description": "400k tokens) "
         }, 
         {
-            "id": "GPT-5-Chat",
+            "id": "GPT-5.1",
             "object": "model",
             "created": 171536813,
             "owned_by": "openai/38/38/300",

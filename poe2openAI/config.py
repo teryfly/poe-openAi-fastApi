@@ -35,7 +35,7 @@ class Config:
             "description": "GPT-OSS-120B-T is an open-source model trained on a diverse range of internet text, designed to generate human-like text based on the input it receives. It excels in various natural language processing tasks, including text generation, summarization, and translation."
         },
        {
-            "id": "GPT-5-Chat",
+            "id": "GPT-5.1",
             "object": "model",
             "created": 171536813,
             "owned_by": "openai/38/38/300",

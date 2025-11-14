@@ -29,6 +29,9 @@ from routes.plan import router as plan_router
 # === 新增上传文件路由 ===
 from routes.upload_file import router as upload_file_router
 
+# === 新增认证路由 ===
+from routes.auth import router as auth_router
+
 # === FastAPI App 初始化 ===
 app = FastAPI(
     title="OpenAI Compatible API Proxy to Poe & OpenAI",
@@ -89,6 +92,9 @@ app.include_router(plan_router)
 
 # === 注册上传文件路由 ===
 app.include_router(upload_file_router)
+
+# === 注册认证路由 ===
+app.include_router(auth_router)
 
 # === 启动函数 ===
 def start_server():
