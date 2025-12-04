@@ -127,10 +127,10 @@ class Config:
             "description": "Reasoning capabilities, search capabilities, and image/video understanding while still prioritizing speed and cost. Supports 1M tokens of input context."
         }, 
         {
-            "id": "Gemini-1.5-Pro",
+            "id": "Gemini-3-Pro",
             "object": "model",
             "created": 1716368120,
-            "owned_by": "Google/5/5/5/30",
+            "owned_by": "Google/54/54/320",
             "description": ""
         }, 
         {
