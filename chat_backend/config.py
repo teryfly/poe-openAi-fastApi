@@ -22,6 +22,20 @@ class Config:
   # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [
         {
+            "id": "Minimax-M2",
+            "object": "model",
+            "created": 1735689702,
+            "owned_by": "110",
+            "description": "State-of-the-art intelligence on a variety of tasks and domains"
+        },
+        {
+            "id": "Minimax-M2.1",
+            "object": "model",
+            "created": 1735689722,
+            "owned_by": "10/40",
+            "description": "State-of-the-art intelligence on a variety of tasks and domains"
+        },
+        {
             "id": "Qwen3-Coder",
             "object": "model",
             "created": 131536811,
@@ -35,6 +49,14 @@ class Config:
             "owned_by": "openai/38/38/300",
             "description": "400k tokens) "
         }, 
+        {
+            "id": "GPT-5.2",
+            "object": "model",
+            "created": 181536826,
+            "owned_by": "openai/38/38/300",
+            "description": "400k tokens) "
+        }, 
+
         {
             "id": "GPT-OSS-120B-T",
             "object": "model",

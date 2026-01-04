@@ -21,6 +21,20 @@ class Config:
     # 直接使用Poe的模型名称，无需映射
     POE_MODELS = [
         {
+            "id": "Minimax-M2",
+            "object": "model",
+            "created": 1735689702,
+            "owned_by": "110",
+            "description": "State-of-the-art intelligence on a variety of tasks and domains"
+        },
+        {
+            "id": "Minimax-M2.1",
+            "object": "model",
+            "created": 1735689722,
+            "owned_by": "10/40",
+            "description": "State-of-the-art intelligence on a variety of tasks and domains"
+        },
+        {
             "id": "Qwen3-Coder",
             "object": "model",
             "created": 131536811,
@@ -28,19 +42,27 @@ class Config:
             "description": "400k tokens) "
         }, 
         {
-            "id": "GPT-OSS-120B-T",
-            "object": "model",
-            "created": 1715368130,
-            "owned_by": "openai/50",
-            "description": "GPT-OSS-120B-T is an open-source model trained on a diverse range of internet text, designed to generate human-like text based on the input it receives. It excels in various natural language processing tasks, including text generation, summarization, and translation."
-        },
-       {
             "id": "GPT-5.1",
             "object": "model",
             "created": 171536813,
             "owned_by": "openai/38/38/300",
             "description": "400k tokens) "
         }, 
+        {
+            "id": "GPT-5.2",
+            "object": "model",
+            "created": 181536826,
+            "owned_by": "openai/38/38/300",
+            "description": "400k tokens) "
+        }, 
+
+        {
+            "id": "GPT-OSS-120B-T",
+            "object": "model",
+            "created": 1715368130,
+            "owned_by": "openai/50",
+            "description": "GPT-OSS-120B-T is an open-source model trained on a diverse range of internet text, designed to generate human-like text based on the input it receives. It excels in various natural language processing tasks, including text generation, summarization, and translation."
+        },
         {
             "id": "GPT-5-Codex",
             "object": "model",
@@ -68,7 +90,7 @@ class Config:
             "created": 1715368132,
             "owned_by": "openai/60/60/193",
             "description": "long context (1M tokens)"
-        }, 
+        },
         {
             "id": "Claude-Sonnet-4-Reasoning",
             "object": "model",
@@ -80,9 +102,9 @@ class Config:
             "id": "Claude-Sonnet-4",
             "object": "model",
             "created": 1729641600,
-            "owned_by": "anthropic/115/115/911",
+            "owned_by": "anthropic/92/400",
             "description": "Anthropic's Claude 4 Sonnet using the 2025 model snapshot"
-        },
+        }, 
         {
             "id": "Claude-Sonnet-4.5",
             "object": "model",
