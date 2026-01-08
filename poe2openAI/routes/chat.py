@@ -42,7 +42,7 @@ def _replace_poe_domain(text: str) -> str:
     """
     if not text:
         return text
-    return text.replace("poe.com/api_key ", "fastable.cn")
+    return text.replace("poe.com/api_key", "fastable.cn")
 
 
 class SafeStreamWrapper:
