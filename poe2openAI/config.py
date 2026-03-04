@@ -64,10 +64,10 @@ class Config:
             "description": "GPT-OSS-120B-T is an open-source model trained on a diverse range of internet text, designed to generate human-like text based on the input it receives. It excels in various natural language processing tasks, including text generation, summarization, and translation."
         },
         {
-            "id": "GPT-5-Codex",
+            "id": "GPT-5.3-Codex",
             "object": "model",
             "created": 181536813,
-            "owned_by": "openai/38/38/300",
+            "owned_by": "openai/38/38/400",
             "description": "400k tokens) "
         }, 
         {
@@ -113,18 +113,18 @@ class Config:
             "description": "Claude Sonnet 4.5 represents a major leap forward in AI capability and alignment.  distinguished by dramatic improvements in reasoning, mathematics, and real-world coding. Supports 200k tokens of context."
         },
         {
-            "id": "Claude-3.7-Sonnet",
+            "id": "Claude-Code",
             "object": "model",
-            "created": 1729641600,
-            "owned_by": "anthropic/115/115/1017",
-            "description": "Anthropic's Claude 3.7,To instruct the bot to use more thinking effort, add --thinking_budget and a number ranging from 0 to 16,384 to the end of your message."
+            "created": 1729641500,
+            "owned_by": "bot",
+            "description": "bot"
         },
         {
-            "id": "Claude-3.5-Sonnet",
+            "id": "Claude-Opus-4.6",
             "object": "model",
             "created": 1729641600,
-            "owned_by": "anthropic/115/115/243",
-            "description": "Anthropic's Claude 3.5 Sonnet using the October 22, 2024 model snapshot"
+            "owned_by": "anthropic/142/709",
+            "description": "Claude Opus 4.6 is Anthropic’s most advanced AI model, built for deep reasoning, complex coding, and long‑running autonomous tasks. It excels at planning, debugging, and working across large codebases, and supports a 1M‑token context window for understanding massive amounts of information. Designed for professional knowledge work, it combines state‑of‑the‑art performance with strong safety and reliability."
         },
         {
             "id": "ChatGPT-4o-Latest",
@@ -155,11 +155,11 @@ class Config:
             "description": ""
         }, 
         {
-            "id": "o3",
+            "id": "Gemini-3.1-Pro",
             "object": "model",
-            "created": 1735689600,
-            "owned_by": "openai/60/60/388",
-            "description": "State-of-the-art intelligence on a variety of tasks and domains"
+            "created": 1716368120,
+            "owned_by": "Google/67/67/400",
+            "description": ""
         },
         {
             "id": "o4-mini",
