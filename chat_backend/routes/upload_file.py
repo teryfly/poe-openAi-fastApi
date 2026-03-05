@@ -1,42 +1,66 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from typing import Optional
+
 from auth import verify_api_key
-from services.attachments import save_upload, build_attachment_text_line, is_image
+from services.attachments import save_uploads
 
 router = APIRouter()
 
-class UploadFileResponse(BaseModel):
+
+class UploadedFileItem(BaseModel):
     filename: str
+    absolute_path: str
     content_type: Optional[str] = None
     size: int
-    url: str
-    is_image: bool
-    attachment_text_line: str
+
+
+class UploadFileResponse(BaseModel):
+    files: List[UploadedFileItem]
+
 
 @router.post("/v1/chat/upload-file", response_model=UploadFileResponse)
 async def upload_file_api(
-    file: UploadFile = File(...),
-    api_key: str = Depends(verify_api_key)
+    project_name: str = Form(...),
+    conversation_name: str = Form(...),
+    files: Optional[List[UploadFile]] = File(default=None),
+    file: Optional[UploadFile] = File(default=None),
+    api_key: str = Depends(verify_api_key),
 ):
     """
-    单文件上传接口：
-    - 接收一个文件，校验类型与大小限制
-    - 保存到服务器本地或外部存储（根据配置）
-    - 返回可公开访问的 URL 以及一个标准化的附件注入文本行（前端可直接拼接到 user 消息中）
+    Supports:
+    - single upload by `file`
+    - multi upload by `files`
+    - or both in same request
     """
     try:
-        url, saved_path, size = save_upload(file)
-        ct = file.content_type or ""
-        line = build_attachment_text_line(url, file.filename or "file", ct, size)
-        return UploadFileResponse(
-            filename=file.filename or "",
-            content_type=ct,
-            size=size,
-            url=url,
-            is_image=is_image(ct),
-            attachment_text_line=line
+        upload_list: List[UploadFile] = []
+        if files:
+            upload_list.extend(files)
+        if file is not None:
+            upload_list.append(file)
+
+        if not upload_list:
+            raise HTTPException(status_code=400, detail="No file uploaded")
+
+        saved = save_uploads(
+            files=upload_list,
+            project_name=project_name,
+            conversation_name=conversation_name,
         )
+
+        result = [
+            UploadedFileItem(
+                filename=original_filename,
+                absolute_path=abs_path,
+                content_type=content_type,
+                size=size,
+            )
+            for original_filename, abs_path, size, content_type in saved
+        ]
+        return UploadFileResponse(files=result)
+
     except HTTPException:
         raise
     except Exception as e:

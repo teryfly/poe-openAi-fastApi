@@ -8,6 +8,7 @@ node_modules/
 chat_backend/attachments/
 chat_backend/train_data/
 poe2openAI/train_data/
+chat_backend/upload_attachments/
 *.csproj
 
 # Jupyter Notebook 缓存

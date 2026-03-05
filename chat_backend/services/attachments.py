@@ -1,69 +1,89 @@
 import os
+import re
 import uuid
-import mimetypes
-from typing import Tuple, Dict, Any, List
-from fastapi import UploadFile, HTTPException
+from typing import List, Tuple
+
+from fastapi import HTTPException, UploadFile
 from config import Config
 
-def ensure_dir(path: str):
-    os.makedirs(path, exist_ok=True)
 
-def get_allowed_types() -> List[str]:
-    raw = (Config.ATTACHMENT_ALLOWED_TYPES or "").strip()
-    return [t.strip() for t in raw.split(",") if t.strip()]
+def _safe_segment(name: str, default: str) -> str:
+    raw = (name or "").strip()
+    if not raw:
+        return default
+    cleaned = re.sub(r'[\\/:*?"<>|]+', "_", raw)
+    cleaned = cleaned.strip(" .")
+    return cleaned or default
 
-def is_allowed_type(mime: str) -> bool:
-    if not mime:
-        return False
-    allowed = get_allowed_types()
-    return mime in allowed
 
-def max_size_bytes() -> int:
-    return Config.ATTACHMENT_MAX_SIZE_MB * 1024 * 1024
+def _base_upload_dir() -> str:
+    return os.path.abspath(os.getenv("UPLOAD_ATTACHMENTS_DIR", "upload_attachments"))
 
-def safe_filename(original_name: str) -> str:
-    name, ext = os.path.splitext(original_name)
-    ext = ext.lower() if ext else ""
-    return f"{uuid.uuid4().hex}{ext}"
 
-def save_upload(file: UploadFile) -> Tuple[str, str, int]:
+def _build_target_dir(project_name: str, conversation_name: str) -> str:
+    p = _safe_segment(project_name, "default_project")
+    c = _safe_segment(conversation_name, "default_conversation")
+    return os.path.join(_base_upload_dir(), p, c)
+
+
+def _max_size_bytes() -> int:
+    return int(getattr(Config, "ATTACHMENT_MAX_SIZE_MB", 20)) * 1024 * 1024
+
+
+def save_upload(file: UploadFile, project_name: str, conversation_name: str) -> Tuple[str, str, int, str]:
     """
-    保存上传的文件到本地目录，返回 (public_url, saved_path, size)
+    Save one file to:
+    upload_attachments/<project_name>/<conversation_name>/
+    Return: (original_filename, absolute_path, size, content_type)
     """
-    content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0] or ""
-    if not is_allowed_type(content_type):
-        raise HTTPException(status_code=415, detail=f"Unsupported content type: {content_type}")
-    ensure_dir(Config.ATTACHMENTS_DIR)
-    filename = safe_filename(file.filename or "upload.bin")
-    saved_path = os.path.join(Config.ATTACHMENTS_DIR, filename)
+    target_dir = _build_target_dir(project_name, conversation_name)
+    os.makedirs(target_dir, exist_ok=True)
 
-    # 流式保存并校验大小
+    original_name = file.filename or "upload.bin"
+    _, ext = os.path.splitext(original_name)
+    saved_name = f"{uuid.uuid4().hex}{ext.lower()}"
+    abs_path = os.path.abspath(os.path.join(target_dir, saved_name))
+
     size = 0
-    with open(saved_path, "wb") as f:
-        while True:
-            chunk = file.file.read(1024 * 1024)
-            if not chunk:
-                break
-            size += len(chunk)
-            if size > max_size_bytes():
-                try:
-                    f.close()
-                    os.remove(saved_path)
-                except Exception:
-                    pass
-                raise HTTPException(status_code=413, detail="File too large")
-            f.write(chunk)
+    max_size = _max_size_bytes()
+    try:
+        with open(abs_path, "wb") as f:
+            while True:
+                chunk = file.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > max_size:
+                    raise HTTPException(status_code=413, detail="File too large")
+                f.write(chunk)
+    except HTTPException:
+        if os.path.exists(abs_path):
+            os.remove(abs_path)
+        raise
+    except Exception as e:
+        if os.path.exists(abs_path):
+            os.remove(abs_path)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
-    # 构建公开URL
-    if Config.ATTACHMENT_BASE_URL:
-        public_url = f"{Config.ATTACHMENT_BASE_URL.rstrip('/')}/{filename}"
-    else:
-        public_url = f"/files/{filename}"
-    return public_url, saved_path, size
+    return original_name, abs_path, size, file.content_type or "application/octet-stream"
 
-def build_attachment_text_line(url: str, filename: str, content_type: str, size: int) -> str:
-    size_kb = round(size / 1024, 1)
-    return f"[ATTACHMENT] name={filename} type={content_type} size={size_kb}KB url={url}"
 
-def is_image(mime: str) -> bool:
-    return (mime or "").startswith("image/")
+def save_uploads(files: List[UploadFile], project_name: str, conversation_name: str) -> List[Tuple[str, str, int, str]]:
+    """
+    Batch save files. If any file fails, previously saved files in this batch are rolled back.
+    Return list of:
+    (original_filename, absolute_path, size, content_type)
+    """
+    saved: List[Tuple[str, str, int, str]] = []
+    try:
+        for f in files:
+            saved.append(save_upload(f, project_name=project_name, conversation_name=conversation_name))
+        return saved
+    except Exception:
+        for _, abs_path, _, _ in saved:
+            try:
+                if os.path.exists(abs_path):
+                    os.remove(abs_path)
+            except Exception:
+                pass
+        raise
