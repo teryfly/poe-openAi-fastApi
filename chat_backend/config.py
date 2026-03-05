@@ -1,15 +1,17 @@
 import os
 
 class Config:
-    POE_API_KEY = "xxxxx-xxxxx-xxxxx"
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-test-key-for-compatibility-Test")
-    # 自定义 OpenAI 兼容 API 服务端 URL
-    OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://43.132.224.225:8000/v1")
+    # Poe API Configuration
+    POE_API_KEY = os.getenv("POE_API_KEY", "O4M2J53VLP8RHevpM_KmqzhvR4tXj4OYgw5Trz40vXM")
+    POE_BASE_URL = "https://api.poe.com"
+    
+    # Server Configuration
     HOST = "0.0.0.0"
     PORT = 8000
     LOG_DIR = "train_data"
 
-    LLM_BACKEND = os.getenv("LLM_BACKEND", "openai")  # openai  or poe
+    # LLM Backend (now Poe-only)
+    LLM_BACKEND = "poe"
 
     # 忽略落库的用户消息内容列表（完全匹配时生效）
     ignoredUserMessages = [
@@ -19,142 +21,141 @@ class Config:
         "go on",
         "Go on. If any incomplete code block (```) exists from the last output, find the/these incomplete Step(s) and regenerate it/them. Skip any steps that were already properly completed."
     ]
-  # 直接使用Poe的模型名称，无需映射
+    
+    # Poe Models - Using official Poe bot names
     POE_MODELS = [
         {
-            "id": "Minimax-M2",
+            "id": "Claude-Opus-4.6",
             "object": "model",
-            "created": 1735689702,
-            "owned_by": "110",
-            "description": "State-of-the-art intelligence on a variety of tasks and domains"
-        },
-        {
-            "id": "Minimax-M2.1",
-            "object": "model",
-            "created": 1735689722,
-            "owned_by": "10/40",
-            "description": "State-of-the-art intelligence on a variety of tasks and domains"
-        },
-        {
-            "id": "GPT-5.1",
-            "object": "model",
-            "created": 171536813,
-            "owned_by": "openai/38/38/300",
-            "description": "400k tokens) "
-        }, 
-        {
-            "id": "GPT-5.2",
-            "object": "model",
-            "created": 181536826,
-            "owned_by": "openai/38/38/300",
-            "description": "400k tokens) "
-        }, 
-
-        {
-            "id": "GPT-5.3-Codex",
-            "object": "model",
-            "created": 181536813,
-            "owned_by": "openai/38/38/300",
-            "description": "400k tokens) "
-        }, 
-        {
-            "id": "GPT-5-Pro",
-            "object": "model",
-            "created": 181536818,
-            "owned_by": "openai/450/3600",
-            "description": "400k tokens) "
-        }, 
-        {
-            "id": "GPT-5",
-            "object": "model",
-            "created": 171536814,
-            "owned_by": "openai/38/38/300",
-            "description": "400k tokens) "
-        },   
-        {
-            "id": "GPT-4.1",
-            "object": "model",
-            "created": 1715368132,
-            "owned_by": "openai/60/60/193",
-            "description": "long context (1M tokens)"
-        },
-        {
-            "id": "Claude-Sonnet-4-Reasoning",
-            "object": "model",
-            "created": 1729641602,
-            "owned_by": "anthropic/115/115/1695",
-            "description": "Claude Sonnet 4 from Anthropic, supports customizable thinking budget (up to 60k tokens) and 200k context window.To instruct the bot to use more thinking effort, add --thinking_budget and a number ranging from 0 to 16,384 to the end of your message."
+            "created": 1729641600,
+            "owned_by": "anthropic",
+            "description": "Claude Opus 4.6 - Anthropic's most advanced model for deep reasoning and complex coding"
         },
         {
             "id": "Claude-Sonnet-4.5",
             "object": "model",
             "created": 1729641600,
-            "owned_by": "anthropic/92/400",
-            "description": "Claude Sonnet 4.5 represents a major leap forward in AI capability and alignment.  distinguished by dramatic improvements in reasoning, mathematics, and real-world coding. Supports 200k tokens of context."
+            "owned_by": "anthropic",
+            "description": "Claude Sonnet 4.5 - Major improvements in reasoning, mathematics, and coding"
+        },
+        {
+            "id": "Claude-Sonnet-4-Reasoning",
+            "object": "model",
+            "created": 1729641602,
+            "owned_by": "anthropic",
+            "description": "Claude Sonnet 4 with customizable thinking budget (up to 60k tokens)"
         },
         {
             "id": "Claude-Code",
             "object": "model",
             "created": 1729641500,
-            "owned_by": "bot",
-            "description": "bot"
+            "owned_by": "anthropic",
+            "description": "Claude optimized for coding tasks"
         },
         {
-            "id": "Claude-Opus-4.6",
+            "id": "GPT-5.3-Codex",
             "object": "model",
-            "created": 1729641600,
-            "owned_by": "anthropic/142/709",
-            "description": "Claude Opus 4.6 is Anthropic’s most advanced AI model, built for deep reasoning, complex coding, and long‑running autonomous tasks. It excels at planning, debugging, and working across large codebases, and supports a 1M‑token context window for understanding massive amounts of information. Designed for professional knowledge work, it combines state‑of‑the‑art performance with strong safety and reliability."
+            "created": 181536813,
+            "owned_by": "openai",
+            "description": "GPT-5.3 optimized for code generation"
+        },
+        {
+            "id": "GPT-5.2",
+            "object": "model",
+            "created": 181536826,
+            "owned_by": "openai",
+            "description": "GPT-5.2 - Advanced reasoning and generation"
+        },
+        {
+            "id": "GPT-5.1",
+            "object": "model",
+            "created": 171536813,
+            "owned_by": "openai",
+            "description": "GPT-5.1 with 400k token context"
+        },
+        {
+            "id": "GPT-5-Pro",
+            "object": "model",
+            "created": 181536818,
+            "owned_by": "openai",
+            "description": "GPT-5 Pro with extended capabilities"
+        },
+        {
+            "id": "GPT-5",
+            "object": "model",
+            "created": 171536814,
+            "owned_by": "openai",
+            "description": "GPT-5 with 400k token context"
+        },
+        {
+            "id": "GPT-4.1",
+            "object": "model",
+            "created": 1715368132,
+            "owned_by": "openai",
+            "description": "GPT-4.1 with 1M token context"
         },
         {
             "id": "ChatGPT-4o-Latest",
             "object": "model",
             "created": 1715368132,
             "owned_by": "openai",
-            "description": "Dynamic model continuously updated to the current version of GPT-4o"
+            "description": "Latest GPT-4o model"
         },
-
         {
-            "id": "Gemini-2.5-Flash",
+            "id": "Gemini-3.1-Pro",
             "object": "model",
-            "created": 1716368133,
-            "owned_by": "Google/3/3/1/8",
-            "description": "Reasoning capabilities, search capabilities, and image/video understanding while still prioritizing speed and cost. Supports 1M tokens of input context."
-        }, 
+            "created": 1716368120,
+            "owned_by": "google",
+            "description": "Gemini 3.1 Pro"
+        },
         {
             "id": "Gemini-3-Pro",
             "object": "model",
             "created": 1716368120,
-            "owned_by": "Google/54/54/320",
-            "description": ""
+            "owned_by": "google",
+            "description": "Gemini 3 Pro"
         },
         {
             "id": "Gemini-3-Flash",
             "object": "model",
             "created": 1716368121,
-            "owned_by": "Google/54/54/320",
-            "description": ""
-        }, 
+            "owned_by": "google",
+            "description": "Gemini 3 Flash - Fast and efficient"
+        },
         {
-            "id": "Gemini-3.1-Pro",
+            "id": "Gemini-2.5-Flash",
             "object": "model",
-            "created": 1716368120,
-            "owned_by": "Google/67/67/400",
-            "description": ""
+            "created": 1716368133,
+            "owned_by": "google",
+            "description": "Gemini 2.5 Flash with 1M token context"
         },
         {
             "id": "o4-mini",
             "object": "model",
             "created": 1725148800,
-            "owned_by": "openai/33/33/235",
-            "description": "supports 200k tokens of input context and 100k tokens of output context.To instruct the bot to use more reasoning effort, add --reasoning_effort to the end of your message with one of 'low', 'medium', or 'high'"
+            "owned_by": "openai",
+            "description": "o4-mini with reasoning capabilities"
+        },
+        {
+            "id": "Minimax-M2.1",
+            "object": "model",
+            "created": 1735689722,
+            "owned_by": "minimax",
+            "description": "Minimax M2.1"
+        },
+        {
+            "id": "Minimax-M2",
+            "object": "model",
+            "created": 1735689702,
+            "owned_by": "minimax",
+            "description": "Minimax M2"
         },
         {
             "id": "GPT-3.5-Turbo",
             "object": "model",
             "created": 1677610602,
             "owned_by": "openai",
-            "description": "GPT-3.5 Turbo model via Poe"
+            "description": "GPT-3.5 Turbo"
         }
     ]
 
@@ -165,4 +166,4 @@ class Config:
         "ATTACHMENT_ALLOWED_TYPES",
         "image/png,image/jpeg,image/webp,application/pdf"
     )
-    ATTACHMENT_BASE_URL = os.getenv("ATTACHMENT_BASE_URL", "").strip()  # 若设置则使用该前缀构建URL
+    ATTACHMENT_BASE_URL = os.getenv("ATTACHMENT_BASE_URL", "").strip()

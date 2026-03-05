@@ -1,12 +1,7 @@
 fastapi
 uvicorn[standard]
 pydantic
-fastapi-poe
 python-multipart
 python-dotenv
 pymysql
 aiohttp
-#或者 pip install /path/to/source-code-concatenator
-# source-code-concatenator @ file:///path/to/source-code-concatenator
-# pip install -e "E:\Projects\GitHubProjects\source-code-concatenator"
-# pip install -e "E:\Projects\GitHubProjects\CodeFileExecutorLib"

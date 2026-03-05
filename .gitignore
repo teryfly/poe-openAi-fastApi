@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+bin/
+obj/
+node_modules/
+chat_backend/attachments/
+chat_backend/train_data/
+poe2openAI/train_data/
+*.csproj
+
+# Jupyter Notebook 缓存
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+# Virtual environments
+venv/
+.env/
+.venv/
+public/
+.env.local/
+assets/
+src/assets/
+node_modules/
+
+# Logs
+*.log
+
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / distribution files
+build/
+dist/
+*.egg-info/
+*.egg
+*.svg
+*.zip
+
+# Config files (if not tracked)
+config.yaml
+*.local.yaml
+
+# macOS files
+.DS_Store
+
+# Test outputs
+.coverage
+htmlcov/
+
+output/
+input/
+.gitlab/
+*.sql
+.git/

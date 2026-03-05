@@ -67,12 +67,27 @@ class ChatMessage(BaseModel):
     @field_validator('content', mode='before')
     @classmethod
     def validate_content(cls, v):
-        """验证并转换content格式，保留所有信息"""
+        """
+        验证并转换content格式
+        For Poe API compatibility, preserve multimodal content structure
+        """
         if v is None:
             return None
         if isinstance(v, str):
             return v
-        elif isinstance(v, (list, dict)):
+        elif isinstance(v, list):
+            # Check if it's multimodal content (images, files)
+            has_multimodal = any(
+                isinstance(item, dict) and item.get("type") in ["image_url", "file"]
+                for item in v
+            )
+            if has_multimodal:
+                # Preserve structure for Poe API
+                return v
+            else:
+                # Extract text content
+                return extract_all_content(v)
+        elif isinstance(v, dict):
             return extract_all_content(v)
         else:
             return str(v) if v is not None else None
@@ -98,6 +113,7 @@ class ChatCompletionRequest(BaseModel):
     seed: Optional[int] = None
     logprobs: Optional[bool] = None
     top_logprobs: Optional[int] = None
+    extra_body: Optional[Dict[str, Any]] = None  # For Poe custom parameters
 
 class ChatCompletionChoice(BaseModel):
     index: int
@@ -138,6 +154,7 @@ class ModelInfo(BaseModel):
     object: str = "model"
     created: int
     owned_by: str
+    description: Optional[str] = None
 
 class ModelListResponse(BaseModel):
     object: str = "list"
