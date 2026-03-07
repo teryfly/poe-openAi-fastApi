@@ -1,6 +1,6 @@
-# chat_backend API 文档
+# chat_backend API 
 
-**版本：** 2.3.0 · 综合整理版  
+**版本：** 2.3.6 ·  
 **Base URL：** `http://{HOST}:{PORT}`（默认端口 8000）  
 **认证方式：** HTTP Bearer — `Authorization: Bearer <token>`，token 须以 `sk-test` 或 `poe-sk` 开头
 
@@ -66,7 +66,8 @@
 | POST | `/v1/plan/documents/migrate/from-current` | — | 从当前版本起迁移 |
 | GET | `/v1/plan/documents/{id}` | — | 文档详情 |
 | PUT | `/v1/plan/documents/{id}` | — | 编辑文档（生成新版本） |
-| POST | `/v1/write-source-code` | — | 写入源码文件（SSE） |
+| DELETE | `/v1/plan/documents/{id}` | — | 删除文档 |
+| DELETE | `/v1/plan/documents/` | — | 删除所有历史文档 |
 
 ---
 
@@ -507,6 +508,7 @@ Content-Type: application/json
 > ```
 >
 > 仅影响本次请求，不持久化。与「文档引用」机制不同——引用关系是持久的，`documents` 字段是一次性临时注入。
+> 注意：`POST /v1/chat/conversations/{conversation_id}/messages` **不会自动**把“项目级/会话级引用的文档（document_references）”注入到本次对话上下文里。它只会在你显式传入 `documents: [plan_documents.id...]` 时，才会把这些文档拼接成知识块注入 system prompt。
 
 **非流式响应：**
 
@@ -851,6 +853,94 @@ PUT /v1/plan/documents/{document_id}
 ```
 
 更新时创建新版本，不覆盖原版本。所有字段均可选：`filename`、`content`、`source`。
+返回新 id 的新记录。
+
+
+### 10.8 删除文档 API
+
+#### 1）删除单个文档版本（按 document_id）
+
+**DELETE** `/v1/plan/documents/{document_id}`
+
+##### 说明
+
+- 删除 `plan_documents` 表中 **id = document_id 的这一条版本记录**
+- 同时清理与该 document_id 关联的数据：
+  - `document_references`
+  - `execution_logs`
+  - `document_tags`
+  - `plan_documents`（该 id 这一行）
+
+> 注意：这是“删一个版本”，不会删除同 filename 的其它版本。
+
+##### 路径参数
+
+| 参数        | 类型 | 必填 | 说明                             |
+| ----------- | ---- | ---: | -------------------------------- |
+| document_id | int  |   是 | 文档版本 ID（plan_documents.id） |
+
+### 成功响应（200）
+
+```json
+{
+  "message": "Document deleted successfully",
+  "deleted": {
+    "document_references": 1,
+    "execution_logs": 0,
+    "document_tags": 2,
+    "plan_documents": 1
+  }
+}
+```
+
+##### 失败响应
+
+- `404`：`{"detail":"Document not found"}`
+- `500`：`{"detail":"..."}`
+
+
+---
+
+#### 2）删除某个 filename 的全部历史版本（按 project_id + category_id + filename）
+
+**DELETE** `/v1/plan/documents`
+
+##### 说明
+
+- 删除指定 `project_id + category_id + filename` 的 **全部版本**（历史全清）
+- 同时清理这些版本对应的关联数据：
+  - `document_references`（这些 document_id 的引用关系）
+  - `execution_logs`
+  - `document_tags`
+  - `plan_documents`（所有版本记录）
+
+##### 查询参数
+
+| 参数        | 类型   | 必填 | 说明                             |
+| ----------- | ------ | ---: | -------------------------------- |
+| project_id  | int    |   是 | 项目 ID                          |
+| category_id | int    |   是 | 分类 ID                          |
+| filename    | string |   是 | 文件名（逻辑文件名，同名多版本） |
+
+##### 成功响应（200）
+
+```json
+{
+  "message": "All versions deleted successfully",
+  "deleted": {
+    "document_references": 3,
+    "execution_logs": 10,
+    "document_tags": 5,
+    "plan_documents": 7
+  }
+}
+```
+
+##### 失败响应
+
+- `400`：`{"detail":"filename cannot be empty"}`
+- `404`：`{"detail":"No documents found"}`
+- `500`：`{"detail":"..."}`
 
 ---
 
@@ -999,93 +1089,3 @@ POST /v1/chat/conversations/{conversation_id}/document-references
 DELETE /v1/chat/conversations/{conversation_id}/document-references
 ```
 
----
-
-## 十三、写入源码文件
-
-```
-POST /v1/write-source-code
-```
-
-| 字段 | 类型 | 必填 | 默认 | 说明 |
-|------|------|:----:|------|------|
-| root_dir | string | 是 | — | 源码写入的根目录（绝对路径，需有写权限） |
-| files_content | string | 是 | — | 任务定义文件内容（符合规范的结构化文本） |
-| log_level | string | 否 | INFO | 日志级别 |
-| backup_enabled | bool | 否 | true | 是否启用备份 |
-
-**请求示例：**
-
-```json
-{
-  "root_dir": "/absolute/path/to/project",
-  "files_content": "Step [1/1] - 创建文件\nAction: Create file\nFile Path: src/main.py\n```python\nprint('hello world')\n```",
-  "log_level": "INFO",
-  "backup_enabled": true
-}
-```
-
-**响应（流式 SSE）：** Content-Type: `text/event-stream`，每步返回一个 JSON 事件。
-
-`type` 取值：
-
-| type | 说明 |
-|------|------|
-| info | 一般信息 |
-| progress | 进度信息 |
-| success | 步骤执行成功 |
-| warning | 警告 |
-| error | 错误 |
-| summary | 最终汇总 |
-
-**普通步骤事件示例（type ≠ summary）：**
-
-```json
-{
-  "message": "任务执行成功",
-  "type": "success",
-  "timestamp": "2025-08-18T14:30:25",
-  "data": {
-    "step_index": 1,
-    "action": "create_file",
-    "file_path": "src/main.py",
-    "backup_path": "backup/src/main.py.bak"
-  }
-}
-```
-
-**汇总事件示例（type=summary）：**
-
-```json
-{
-  "message": "执行完成",
-  "type": "summary",
-  "timestamp": "2025-08-18T14:30:30",
-  "data": {
-    "total_tasks": 5,
-    "successful_tasks": 4,
-    "failed_tasks": 1,
-    "invalid_tasks": 0,
-    "execution_time": "2.34s",
-    "log_file": "log/execution_20250818_143025.log"
-  }
-}
-```
-
----
-
-## 十四、实现细节与行为说明
-
-| 条目 | 说明 |
-|------|------|
-| LLM 后端 | poe 或 openai，由环境变量 `LLM_BACKEND` 控制，详见 config.py 与 llm_router.py |
-| SSE 过滤 | 以 `"Thinking..."` 开头的内容分片会被丢弃，不出现在响应输出与落库记录中 |
-| 会话活跃度 | 任意消息的插入/更新均会刷新 `conversations.updated_at`，用于最近活动排序 |
-| 训练日志 | 非流与流式完整响应记录到 `train_data/YYYY-MM-DD.jsonl`（见 logger.py） |
-| 数据库 | 需要 MySQL，连接参数见 db.py |
-| 代码模块 | 分类路由：`routes/plan/categories.py`；文档路由：`routes/plan/documents.py`；模型：`routes/plan/models.py` |
-| 附件存储 | 上传文件保存至 `ATTACHMENTS_DIR`（默认 `attachments`）；可通过 `ATTACHMENT_BASE_URL` 配置公开访问前缀 |
-
----
-
-*如有版本冲突，以实际后端代码为准。*

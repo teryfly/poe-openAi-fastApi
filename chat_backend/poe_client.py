@@ -109,7 +109,7 @@ class PoeClient:
             payload.update(kwargs["extra_body"])
 
         start_ts = time.time()
-        print(f"[{self._now_str()}] 🚀 请求 Poe.com LLM - 模型: {model} (流式)")
+        print(f"[{self._now_str()}] 🚀 请求 LLM - 模型: {model} (流式)")
 
         first_chunk_latency = None
         chunk_count = 0
@@ -212,7 +212,7 @@ class PoeClient:
             payload.update(kwargs["extra_body"])
 
         start_ts = time.time()
-        print(f"[{self._now_str()}] 🚀 请求 Poe.com LLM - 模型: {model} (非流式)")
+        print(f"[{self._now_str()}] 🚀 请求 LLM - 模型: {model} (非流式)")
 
         try:
             async with aiohttp.ClientSession() as session:

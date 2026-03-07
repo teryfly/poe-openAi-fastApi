@@ -2,7 +2,7 @@ import os
 
 class Config:
     # Poe API Configuration
-    POE_API_KEY = os.getenv("POE_API_KEY", "O4M2J53VLP8RHevpM_KmqzhvR4tXj4OYgw5Trz40vXM")
+    POE_API_KEY = os.getenv("POE_API_KEY", "xxx-xxx-xxx-xxx")
     POE_BASE_URL = "https://api.poe.com"
     
     # Server Configuration
