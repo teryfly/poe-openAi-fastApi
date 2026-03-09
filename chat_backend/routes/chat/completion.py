@@ -22,6 +22,11 @@ from models import (
     ChatMessage,
     Role,
 )
+from services.llm_errors import (
+    LLMUpstreamNetworkError,
+    LLMUpstreamResponseError,
+    LLMUpstreamTimeoutError,
+)
 from services.message_utils import is_ignored_user_message
 from services.poe_messages import normalize_messages_for_poe
 
@@ -51,6 +56,9 @@ async def create_chat_completion(request: Request, api_key: str = Depends(verify
         response = _build_non_stream_response(req_obj.model, llm_messages, content)
         request_logger.log_request_response(req_obj.model_dump(), response.model_dump(), time.time() - start_time)
         return response
+    except (LLMUpstreamNetworkError, LLMUpstreamTimeoutError, LLMUpstreamResponseError) as e:
+        logger.error("Upstream LLM error: %s", e)
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         logger.error("Chat completion failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

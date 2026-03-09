@@ -1,6 +1,6 @@
 import logging
 from config import Config
-from poe_client import PoeClient
+from services.poe_timeout_client import ConfigurableTimeoutPoeClient
 
 logger = logging.getLogger(__name__)
 
@@ -14,4 +14,8 @@ def get_llm_client():
     """
     Returns the Poe client instance
     """
-    return PoeClient(Config.POE_API_KEY, Config.POE_BASE_URL), "poe"
+    return ConfigurableTimeoutPoeClient(
+        api_key=Config.POE_API_KEY,
+        base_url=Config.POE_BASE_URL,
+        non_stream_timeout_seconds=Config.POE_NON_STREAM_TIMEOUT_SECONDS,
+    ), "poe"

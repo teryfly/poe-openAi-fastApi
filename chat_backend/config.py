@@ -2,8 +2,9 @@ import os
 
 class Config:
     # Poe API Configuration
-    POE_API_KEY = os.getenv("POE_API_KEY", "xxx-xxx-xxx-xxx")
+    POE_API_KEY = os.getenv("POE_API_KEY", "WEfICxUnK0dVUPH1GPm8Wl0-XhcsMiF7W8iDqCDBh6k")
     POE_BASE_URL = "https://api.poe.com"
+    POE_NON_STREAM_TIMEOUT_SECONDS = int(os.getenv("POE_NON_STREAM_TIMEOUT_SECONDS", "360"))
     
     # Server Configuration
     HOST = "0.0.0.0"

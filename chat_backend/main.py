@@ -14,7 +14,7 @@ from config import Config
 from logger import request_logger
 from routes_misc import register_misc_routes
 from routes_project import router as project_router
-from routes.chat import register_chat_routes 
+from routes.chat import register_chat_routes
 
 # === 新增写入源码路由 ===
 from routes.write_source_code import router as write_source_code_router
@@ -32,6 +32,9 @@ from routes.upload_file import router as upload_file_router
 # === 新增认证路由 ===
 from routes.auth import router as auth_router
 
+# === 新增项目层级信息路由 ===
+from routes.project_hierarchy import router as project_hierarchy_router
+
 # === FastAPI App 初始化 ===
 app = FastAPI(
     title="OpenAI Compatible API Proxy to Poe & OpenAI",
@@ -41,6 +44,7 @@ app = FastAPI(
 import traceback
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -79,6 +83,7 @@ if not Config.ATTACHMENT_BASE_URL:
 register_misc_routes(app)
 register_chat_routes(app)
 app.include_router(project_router)
+app.include_router(project_hierarchy_router)
 
 # === 注册写入源码API路由 ===
 app.include_router(write_source_code_router)

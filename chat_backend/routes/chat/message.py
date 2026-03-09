@@ -12,6 +12,11 @@ from conversation_manager import conversation_manager
 from llm_router import get_llm_client
 from services.chat_stream import StreamSession, add_session, get_session, remove_session
 from services.kb_documents import build_kb_block_from_documents, inject_kb_into_system_prompt
+from services.llm_errors import (
+    LLMUpstreamNetworkError,
+    LLMUpstreamResponseError,
+    LLMUpstreamTimeoutError,
+)
 from services.message_utils import is_ignored_user_message, merge_assistant_messages_with_user_history
 from services.poe_messages import normalize_messages_for_poe
 
@@ -88,6 +93,8 @@ async def add_message_and_reply(
         }
     except KeyError:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    except (LLMUpstreamNetworkError, LLMUpstreamTimeoutError, LLMUpstreamResponseError) as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,6 +1,6 @@
 # chat_backend API 
 
-**版本：** 2.3.6 ·  
+**版本：** 2.3.7
 **Base URL：** `http://{HOST}:{PORT}`（默认端口 8000）  
 **认证方式：** HTTP Bearer — `Authorization: Bearer <token>`，token 须以 `sk-test` 或 `poe-sk` 开头
 
@@ -68,6 +68,7 @@
 | PUT | `/v1/plan/documents/{id}` | — | 编辑文档（生成新版本） |
 | DELETE | `/v1/plan/documents/{id}` | — | 删除文档 |
 | DELETE | `/v1/plan/documents/` | — | 删除所有历史文档 |
+| GET | `/v1/projects/{project_id}/hierarchy` | — | 获取项目下会话与引用文档层级信息|
 
 ---
 
@@ -1089,3 +1090,120 @@ POST /v1/chat/conversations/{conversation_id}/document-references
 DELETE /v1/chat/conversations/{conversation_id}/document-references
 ```
 
+
+## 十三、项目会话与引用文档层级信息
+
+### 13.1 获取项目下会话与引用文档层级信息
+
+```
+GET /v1/projects/{project_id}/hierarchy
+```
+
+按 `project_id` 一次性返回以下层级数据：
+
+1. 项目基础信息
+2. 项目级引用文档列表（含 document_id、filename、version）
+3. 项目下所有会话基础信息
+4. 每个会话的会话级引用文档列表（含 document_id、filename、version）
+
+---
+
+### 13.2 响应结构（200）
+
+```json
+{
+  "project_id": 41,
+  "project_name": "demo-project",
+  "project_document_references": [
+    {
+      "document_id": 1001,
+      "filename": "API设计规范.md",
+      "version": 7
+    },
+    {
+      "document_id": 1008,
+      "filename": "部署说明.md",
+      "version": 2
+    }
+  ],
+  "conversations": [
+    {
+      "id": "9f7305d8-4be2-4e92-bdc6-6fdd8ef8a5f1",
+      "name": "需求评审会话",
+      "model": "GPT-5.2",
+      "assistance_role": "架构师助手",
+      "status": 0,
+      "created_at": "2026-03-09T10:00:00",
+      "updated_at": "2026-03-09T10:30:00",
+      "conversation_document_references": [
+        {
+          "document_id": 1020,
+          "filename": "会议纪要.md",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "id": "1f0cc4f7-3117-47b7-b63f-b67cf00b4565",
+      "name": "技术方案会话",
+      "model": "Claude-Sonnet-4.5",
+      "assistance_role": "编码助手",
+      "status": 0,
+      "created_at": "2026-03-08T18:12:02",
+      "updated_at": "2026-03-09T09:11:45",
+      "conversation_document_references": []
+    }
+  ]
+}
+```
+
+---
+
+### 13.3 字段说明
+
+#### 顶层字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| project_id | int | 项目 ID |
+| project_name | string | 项目名称 |
+| project_document_references | array | 项目级引用文档列表 |
+| conversations | array | 项目下会话列表 |
+
+#### project_document_references[] / conversation_document_references[] 元素字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| document_id | int | 引用文档 ID（plan_documents.id） |
+| filename | string | 文档名称 |
+| version | int\\|null | 文档版本号 |
+
+#### conversations[] 元素字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 会话 ID |
+| name | string\\|null | 会话名称 |
+| model | string\\|null | 会话模型 |
+| assistance_role | string\\|null | 会话助手角色 |
+| status | int | 会话状态（0=正常，1=存档） |
+| created_at | string\\|null | 会话创建时间（ISO8601） |
+| updated_at | string\\|null | 会话更新时间（ISO8601） |
+| conversation_document_references | array | 会话级引用文档列表 |
+
+---
+
+### 13.4 错误响应
+
+| 状态码 | 说明 |
+|--------|------|
+| 404 | 项目不存在 |
+| 500 | 服务器内部错误 |
+
+示例（404）：
+
+```json
+{
+  "detail": "Project not found"
+}
+```
