@@ -3,6 +3,8 @@ import os
 class Config:
     # Poe API Configuration
     POE_API_KEY = os.getenv("POE_API_KEY", "WEfICxUnK0dVUPH1GPm8Wl0-XhcsMiF7W8iDqCDBh6k")
+    # key 2
+   # POE_API_KEY = os.getenv("POE_API_KEY", "O4M2J53VLP8RHevpM_KmqzhvR4tXj4OYgw5Trz40vXM")
     POE_BASE_URL = "https://api.poe.com"
     POE_NON_STREAM_TIMEOUT_SECONDS = int(os.getenv("POE_NON_STREAM_TIMEOUT_SECONDS", "360"))
     
@@ -40,11 +42,11 @@ class Config:
             "description": "Claude Sonnet 4.5 - Major improvements in reasoning, mathematics, and coding"
         },
         {
-            "id": "Claude-Sonnet-4-Reasoning",
+            "id": "Claude-Sonnet-4.6",
             "object": "model",
             "created": 1729641602,
             "owned_by": "anthropic",
-            "description": "Claude Sonnet 4 with customizable thinking budget (up to 60k tokens)"
+            "description": "Claude Sonnet 4.6 - Latest version with enhanced capabilities"
         },
         {
             "id": "Claude-Code",
@@ -75,11 +77,11 @@ class Config:
             "description": "GPT-5.1 with 400k token context"
         },
         {
-            "id": "GPT-5-Pro",
+            "id": "GPT-5.4",
             "object": "model",
             "created": 181536818,
             "owned_by": "openai",
-            "description": "GPT-5 Pro with extended capabilities"
+            "description": "GPT-5.4 with 1M token context and enhanced reasoning"
         },
         {
             "id": "GPT-5",
@@ -138,14 +140,14 @@ class Config:
             "description": "o4-mini with reasoning capabilities"
         },
         {
-            "id": "Minimax-M2.1",
+            "id": "Minimax-M2.7",
             "object": "model",
             "created": 1735689722,
             "owned_by": "minimax",
-            "description": "Minimax M2.1"
+            "description": "Minimax M2.7"
         },
         {
-            "id": "Minimax-M2",
+            "id": "Minimax-M2.5",
             "object": "model",
             "created": 1735689702,
             "owned_by": "minimax",

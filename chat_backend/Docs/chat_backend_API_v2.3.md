@@ -1,6 +1,6 @@
 # chat_backend API 
 
-**版本：** 2.3.7
+**版本：** 2.3.10
 **Base URL：** `http://{HOST}:{PORT}`（默认端口 8000）  
 **认证方式：** HTTP Bearer — `Authorization: Bearer <token>`，token 须以 `sk-test` 或 `poe-sk` 开头
 
@@ -13,6 +13,7 @@
 本系统是一个以项目为单位管理 LLM 对话上下文与知识库的后台 API，主要用于管理软件开发的文档与 Vibe Coding 过程。
 
 每个项目下包含：
+
 - 多个会话（Conversation）
 - 可分类管理的文档库（计划/知识库）
 - 文档可设置为「项目级引用」（对项目下所有会话生效）或「会话级引用」
@@ -23,52 +24,55 @@
 
 ## 二、API 总览索引
 
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|:----:|------|
-| GET | `/` | — | 根信息 |
-| GET | `/health` | — | 健康检查 |
-| GET | `/v1/models` | — | 模型列表 |
-| POST | `/v1/chat/completions` | ✓ | OpenAI 兼容聊天（支持 SSE / multipart） |
-| POST | `/v1/chat/upload-file` | ✓ | 上传附件（单文件或多文件） |
-| POST | `/v1/chat/conversations` | — | 创建会话 |
-| GET | `/v1/chat/conversations` | — | 会话列表 |
-| GET | `/v1/chat/conversations/grouped` | — | 按项目分组会话 |
-| GET | `/v1/chat/conversations/{id}` | — | 会话详情 |
-| PUT | `/v1/chat/conversations/{id}` | — | 更新会话 |
-| DELETE | `/v1/chat/conversations/{id}` | — | 删除会话 |
-| GET | `/v1/chat/conversations/{id}/messages` | — | 会话消息列表 |
-| POST | `/v1/chat/conversations/{id}/messages` | ✓ | 追加消息并获取 LLM 回复（支持 SSE） |
-| GET | `/v1/chat/conversations/{id}/referenced-documents` | — | 查询会话引用的文档（含项目级+会话级） |
-| GET | `/v1/chat/conversations/{id}/document-references` | — | 查询会话级引用关系 |
-| POST | `/v1/chat/conversations/{id}/document-references` | — | 设置会话级引用（完全替换） |
-| DELETE | `/v1/chat/conversations/{id}/document-references` | — | 清空会话级引用 |
-| POST | `/v1/chat/messages/delete` | — | 批量删除消息 |
-| POST | `/v1/chat/stop-stream` | — | 停止流式会话 |
-| GET | `/v1/projects` | — | 项目列表 |
-| GET | `/v1/projects/{id}` | — | 项目详情 |
-| POST | `/v1/projects` | — | 新建项目 |
-| PUT | `/v1/projects/{id}` | — | 更新项目 |
-| DELETE | `/v1/projects/{id}` | — | 删除项目 |
-| GET | `/v1/projects/{id}/complete-source-code` | — | 聚合工程源码文本 |
-| GET | `/v1/projects/{id}/document-references` | — | 查询项目级引用 |
-| POST | `/v1/projects/{id}/document-references` | — | 设置项目级引用（完全替换） |
-| DELETE | `/v1/projects/{id}/document-references` | — | 清空项目级引用 |
-| GET | `/v1/plan/categories` | — | 计划分类列表 |
-| GET | `/v1/plan/categories/{id}` | — | 单个分类详情 |
-| POST | `/v1/plan/categories` | — | 创建分类 |
-| PUT | `/v1/plan/categories/{id}` | — | 更新分类 |
-| DELETE | `/v1/plan/categories/{id}` | — | 删除分类（级联） |
-| POST | `/v1/plan/documents` | — | 新增文档版本 |
-| GET | `/v1/plan/documents/history` | — | 文档历史版本 |
-| GET | `/v1/plan/documents/latest` | — | 文档最新版本列表（含搜索/分页） |
-| POST | `/v1/plan/documents/merge` | — | 合并多文档内容 |
-| POST | `/v1/plan/documents/migrate/all-history` | — | 迁移文档全历史 |
-| POST | `/v1/plan/documents/migrate/from-current` | — | 从当前版本起迁移 |
-| GET | `/v1/plan/documents/{id}` | — | 文档详情 |
-| PUT | `/v1/plan/documents/{id}` | — | 编辑文档（生成新版本） |
-| DELETE | `/v1/plan/documents/{id}` | — | 删除文档 |
-| DELETE | `/v1/plan/documents/` | — | 删除所有历史文档 |
-| GET | `/v1/projects/{project_id}/hierarchy` | — | 获取项目下会话与引用文档层级信息|
+| 方法   | 路径                                               | 鉴权 | 说明                                    |
+| ------ | -------------------------------------------------- | :--: | --------------------------------------- |
+| GET    | `/`                                                |  —   | 根信息                                  |
+| GET    | `/health`                                          |  —   | 健康检查                                |
+| GET    | `/v1/models`                                       |  —   | 模型列表                                |
+| POST   | `/v1/chat/completions`                             |  ✓   | OpenAI 兼容聊天（支持 SSE / multipart） |
+| POST   | `/v1/chat/upload-file`                             |  ✓   | 上传附件（单文件或多文件）              |
+| POST   | `/v1/chat/conversations`                           |  —   | 创建会话                                |
+| GET    | `/v1/chat/conversations`                           |  —   | 会话列表                                |
+| GET    | `/v1/chat/conversations/grouped`                   |  —   | 按项目分组会话                          |
+| GET    | `/v1/chat/conversations/{id}`                      |  —   | 会话详情                                |
+| PUT    | `/v1/chat/conversations/{id}`                      |  —   | 更新会话                                |
+| DELETE | `/v1/chat/conversations/{id}`                      |  —   | 删除会话                                |
+| GET    | `/v1/chat/conversations/{id}/messages`             |  —   | 会话消息列表                            |
+| POST   | `/v1/chat/conversations/{id}/messages`             |  ✓   | 追加消息并获取 LLM 回复（支持 SSE）     |
+| GET    | `/v1/chat/conversations/{id}/referenced-documents` |  —   | 查询会话引用的文档（含项目级+会话级）   |
+| GET    | `/v1/chat/conversations/{id}/document-references`  |  —   | 查询会话级引用关系                      |
+| POST   | `/v1/chat/conversations/{id}/document-references`  |  —   | 设置会话级引用（完全替换）              |
+| DELETE | `/v1/chat/conversations/{id}/document-references`  |  —   | 清空会话级引用                          |
+| POST   | `/v1/chat/messages/delete`                         |  —   | 批量删除消息                            |
+| POST   | `/v1/chat/stop-stream`                             |  —   | 停止流式会话                            |
+| GET    | `/v1/projects`                                     |  —   | 项目列表                                |
+| GET    | `/v1/projects/{id}`                                |  —   | 项目详情                                |
+| POST   | `/v1/projects`                                     |  —   | 新建项目                                |
+| PUT    | `/v1/projects/{id}`                                |  —   | 更新项目                                |
+| DELETE | `/v1/projects/{id}`                                |  —   | 删除项目                                |
+| GET    | `/v1/projects/{id}/complete-source-code`           |  —   | 聚合工程源码文本                        |
+| GET    | `/v1/projects/{id}/document-references`            |  —   | 查询项目级引用                          |
+| POST   | `/v1/projects/{id}/document-references`            |  —   | 设置项目级引用（完全替换）              |
+| DELETE | `/v1/projects/{id}/document-references`            |  —   | 清空项目级引用                          |
+| GET    | `/v1/plan/categories`                              |  —   | 计划分类列表                            |
+| GET    | `/v1/plan/categories/{id}`                         |  —   | 单个分类详情                            |
+| POST   | `/v1/plan/categories`                              |  —   | 创建分类                                |
+| PUT    | `/v1/plan/categories/{id}`                         |  —   | 更新分类                                |
+| DELETE | `/v1/plan/categories/{id}`                         |  —   | 删除分类（级联）                        |
+| POST   | `/v1/plan/documents`                               |  —   | 新增文档版本                            |
+| PUT    | /v1/plan/documents/{document_id}                   |      | 编辑文档                                |
+| POST   | /v1/plan/documents/{document_id}                   |      | 安全编辑文档（留痕）                    |
+| GET    | `/v1/plan/documents/history`                       |  —   | 文档历史版本                            |
+| GET    | `/v1/plan/documents/latest`                        |  —   | 文档最新版本列表（含搜索/分页）         |
+| POST   | `/v1/plan/documents/merge`                         |  —   | 合并多文档内容                          |
+| POST   | `/v1/plan/documents/migrate/all-history`           |  —   | 迁移文档全历史                          |
+| POST   | `/v1/plan/documents/migrate/from-current`          |  —   | 从当前版本起迁移                        |
+| GET    | `/v1/plan/documents/{id}`                          |  —   | 文档详情                                |
+| PUT    | `/v1/plan/documents/{id}`                          |  —   | 编辑文档（原文档更新）                  |
+| POST   | `/v1/plan/documents/{id}`                          |  —   | 安全编辑文档（留痕，生成新版本）        |
+| DELETE | `/v1/plan/documents/{id}`                          |  —   | 删除文档                                |
+| DELETE | `/v1/plan/documents`                               |  —   | 删除所有历史文档                        |
+| GET    | `/v1/projects/{project_id}/hierarchy`              |  —   | 获取项目下会话与引用文档层级信息        |
 
 ---
 
@@ -76,43 +80,43 @@
 
 ### 3.1 Project（项目）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | int | 主键 |
-| name | string | 项目名称（唯一） |
-| dev_environment | string | 开发环境描述 |
+| 字段                | 类型   | 说明                              |
+| ------------------- | ------ | --------------------------------- |
+| id                  | int    | 主键                              |
+| name                | string | 项目名称（唯一）                  |
+| dev_environment     | string | 开发环境描述                      |
 | grpc_server_address | string | 通信/部署服务器地址（可填占位符） |
-| llm_model | string | 默认模型，如 GPT-5.2 |
-| llm_url | string | LLM 远端地址 |
-| git_work_dir | string | Git 工作目录 |
-| ai_work_dir | string | 项目文件工作目录根路径 |
-| created_time | string | ISO 8601 |
-| updated_time | string | ISO 8601 |
+| llm_model           | string | 默认模型，如 GPT-5.2              |
+| llm_url             | string | LLM 远端地址                      |
+| git_work_dir        | string | Git 工作目录                      |
+| ai_work_dir         | string | 项目文件工作目录根路径            |
+| created_time        | string | ISO 8601                          |
+| updated_time        | string | ISO 8601                          |
 
 ### 3.2 Conversation（会话）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | string (UUID) | 主键 |
-| name | string | 会话名称 |
-| system_prompt | string | 系统提示词 |
-| model | string | 使用的模型 |
-| assistance_role | string | 助手角色描述 |
-| status | int | 0=正常，1=存档 |
-| project_id | int | 所属项目 ID |
-| created_at | string | ISO 8601 |
-| updated_at | string | ISO 8601，任意消息变动均会刷新 |
+| 字段            | 类型          | 说明                           |
+| --------------- | ------------- | ------------------------------ |
+| id              | string (UUID) | 主键                           |
+| name            | string        | 会话名称                       |
+| system_prompt   | string        | 系统提示词                     |
+| model           | string        | 使用的模型                     |
+| assistance_role | string        | 助手角色描述                   |
+| status          | int           | 0=正常，1=存档                 |
+| project_id      | int           | 所属项目 ID                    |
+| created_at      | string        | ISO 8601                       |
+| updated_at      | string        | ISO 8601，任意消息变动均会刷新 |
 
 ### 3.3 Message（消息）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | int | 主键 |
-| conversation_id | string | 所属会话 UUID |
-| role | string | user / assistant / system / tool / function |
-| content | string 或 array | 消息内容（文字时为字符串，含附件时为结构化数组） |
-| created_at | string | ISO 8601 |
-| updated_at | string | ISO 8601 |
+| 字段            | 类型            | 说明                                             |
+| --------------- | --------------- | ------------------------------------------------ |
+| id              | int             | 主键                                             |
+| conversation_id | string          | 所属会话 UUID                                    |
+| role            | string          | user / assistant / system / tool / function      |
+| content         | string 或 array | 消息内容（文字时为字符串，含附件时为结构化数组） |
+| created_at      | string          | ISO 8601                                         |
+| updated_at      | string          | ISO 8601                                         |
 
 ---
 
@@ -168,20 +172,22 @@ Content-Type: application/json
 
 **请求字段：**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|:----:|------|
-| model | string | 是 | 模型名称 |
-| messages | array | 是 | 消息数组，role 可为 system / user / assistant / tool / function |
-| stream | bool | 否 | 默认 false；为 true 时以 SSE 返回 |
-| functions/tools | ... | 否 | 原生 OpenAI 字段，透传到 LLM |
+| 字段            | 类型   | 必填 | 说明                                                         |
+| --------------- | ------ | :--: | ------------------------------------------------------------ |
+| model           | string |  是  | 模型名称                                                     |
+| messages        | array  |  是  | 消息数组，role 可为 system / user / assistant / tool / function |
+| stream          | bool   |  否  | 默认 false；为 true 时以 SSE 返回                            |
+| functions/tools | ...    |  否  | 原生 OpenAI 字段，透传到 LLM                                 |
 
 **关联已有会话（二选一）：**
+
 - 在最后一条消息的 `name` 字段填写 `"cid-<conversation_id>"`
 - （不推荐）在消息对象中添加非标准 `conversation_id` 字段
 
 **非流式响应：** 返回标准 OpenAI JSON，`choices[0].message.content` 包含回答，`usage` 为简易分词统计。
 
 **SSE 流式响应：**
+
 - 逐帧发送 `chat.completion.chunk` 格式数据
 - 结束帧含 `finish_reason="stop"`，随后发送 `data: [DONE]`
 - 以 `"Thinking..."` 开头的分片会被过滤，不出现在输出与落库记录中
@@ -215,12 +221,12 @@ Content-Type: multipart/form-data
 
 **form-data 字段：**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|:----:|------|
-| project_name | string | 是 | 项目名 |
-| conversation_name | string | 是 | 会话名 |
-| files | File（可重复） | 推荐 | 多文件上传，添加多个同名字段 |
-| file | File | 兼容 | 单文件上传（旧方式兼容） |
+| 字段              | 类型           | 必填 | 说明                         |
+| ----------------- | -------------- | :--: | ---------------------------- |
+| project_name      | string         |  是  | 项目名                       |
+| conversation_name | string         |  是  | 会话名                       |
+| files             | File（可重复） | 推荐 | 多文件上传，添加多个同名字段 |
+| file              | File           | 兼容 | 单文件上传（旧方式兼容）     |
 
 **响应（200）：**
 
@@ -247,12 +253,12 @@ Content-Type: multipart/form-data
 
 **错误码：**
 
-| 状态码 | 说明 |
-|--------|------|
-| 401 | Authorization 头无效 |
-| 413 | 单文件超过大小限制（默认 20MB，可通过 `ATTACHMENT_MAX_SIZE_MB` 调整） |
-| 415 | 文件类型不在白名单（默认支持 image/png, image/jpeg, image/webp, application/pdf） |
-| 500 | 保存附件失败 |
+| 状态码 | 说明                                                         |
+| ------ | ------------------------------------------------------------ |
+| 401    | Authorization 头无效                                         |
+| 413    | 单文件超过大小限制（默认 20MB，可通过 `ATTACHMENT_MAX_SIZE_MB` 调整） |
+| 415    | 文件类型不在白名单（默认支持 image/png, image/jpeg, image/webp, application/pdf） |
+| 500    | 保存附件失败                                                 |
 
 ---
 
@@ -302,11 +308,11 @@ Content-Type: application/json
 
 **content 块类型说明：**
 
-| type | 字段结构 | 适用场景 |
-|------|----------|----------|
-| `text` | `{ "type": "text", "text": "..." }` | 文字内容 |
-| `file` | `{ "type": "file", "file": { "filename": "...", "file_data": "<absolute_path>" } }` | PDF、Excel 等非图片文件 |
-| `image_url` | `{ "type": "image_url", "image_url": { "url": "<absolute_path>" } }` | 图片文件 |
+| type        | 字段结构                                                     | 适用场景                |
+| ----------- | ------------------------------------------------------------ | ----------------------- |
+| `text`      | `{ "type": "text", "text": "..." }`                          | 文字内容                |
+| `file`      | `{ "type": "file", "file": { "filename": "...", "file_data": "<absolute_path>" } }` | PDF、Excel 等非图片文件 |
+| `image_url` | `{ "type": "image_url", "image_url": { "url": "<absolute_path>" } }` | 图片文件                |
 
 #### 方式二：completions 接口（可选）
 
@@ -416,14 +422,14 @@ async function askWithAllUploadedAttachments(conversationId, token, questionText
 POST /v1/chat/conversations
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|:----:|------|
-| project_id | int | 否 | 默认 0 |
-| name | string | 否 | 会话名称 |
-| system_prompt | string | 否 | 系统提示词 |
-| model | string | 否 | 指定模型 |
-| assistance_role | string | 否 | 助手角色描述 |
-| status | int | 否 | 0=正常（默认），1=存档 |
+| 字段            | 类型   | 必填 | 说明                   |
+| --------------- | ------ | :--: | ---------------------- |
+| project_id      | int    |  否  | 默认 0                 |
+| name            | string |  否  | 会话名称               |
+| system_prompt   | string |  否  | 系统提示词             |
+| model           | string |  否  | 指定模型               |
+| assistance_role | string |  否  | 助手角色描述           |
+| status          | int    |  否  | 0=正常（默认），1=存档 |
 
 响应：`{ "conversation_id": "uuid" }`
 
@@ -492,13 +498,13 @@ Content-Type: application/json
 
 **请求体：**
 
-| 字段 | 类型 | 必填 | 默认 | 说明 |
-|------|------|:----:|------|------|
-| role | string | 是 | — | user / assistant / ... |
-| content | string 或 array | 是 | — | 纯文字时传字符串；含附件时传结构化数组（见第五章） |
-| model | string | 否 | ChatGPT-4o-Latest | 使用的模型 |
-| stream | bool | 否 | false | 是否 SSE 流式返回 |
-| documents | int[] | 否 | — | plan_documents 的 id 数组，用于临时注入知识库文档到本次上下文（见下方说明） |
+| 字段      | 类型            | 必填 | 默认              | 说明                                                         |
+| --------- | --------------- | :--: | ----------------- | ------------------------------------------------------------ |
+| role      | string          |  是  | —                 | user / assistant / ...                                       |
+| content   | string 或 array |  是  | —                 | 纯文字时传字符串；含附件时传结构化数组（见第五章）           |
+| model     | string          |  否  | ChatGPT-4o-Latest | 使用的模型                                                   |
+| stream    | bool            |  否  | false             | 是否 SSE 流式返回                                            |
+| documents | int[]           |  否  | —                 | plan_documents 的 id 数组，用于临时注入知识库文档到本次上下文（见下方说明） |
 
 > **documents 字段说明：** 传入后，系统按 id 查询各文档的 filename 与 content，在提交 LLM 前追加到本次会话 system prompt 之后，格式为：
 >
@@ -523,6 +529,7 @@ Content-Type: application/json
 ```
 
 **SSE 流式响应：**
+
 - 首帧：`{ "user_message_id": int|null, "assistant_message_id": int, "conversation_id": "...", "session_id": "..." }`
 - 多帧：`{ "content": "partial text" }`
 - 完成：`{ "content": "", "finish_reason": "stop" }` + `data: [DONE]`
@@ -577,15 +584,15 @@ GET /v1/projects/{id}
 POST /v1/projects
 ```
 
-| 字段 | 类型 | 必填 | 默认 | 说明 |
-|------|------|:----:|------|------|
-| name | string | 是 | — | 项目名称，全局唯一 |
-| dev_environment | string | 是 | — | 开发环境描述，用于上下文提示 |
-| grpc_server_address | string | 是 | — | 通信/部署服务器地址，不使用可填占位符 |
-| llm_model | string | 否 | GPT-5.2 | 默认模型（实际调用通常显式指定） |
-| llm_url | string | 否 | http://43.132.224.225:8000/v1/chat/completions | LLM 远端地址 |
-| git_work_dir | string | 否 | /git_workspace | 本地临时 Git 提交目录 |
-| ai_work_dir | string | 否 | /aiWorkDir | 项目文件工作目录根路径 |
+| 字段                | 类型   | 必填 | 默认                                           | 说明                                  |
+| ------------------- | ------ | :--: | ---------------------------------------------- | ------------------------------------- |
+| name                | string |  是  | —                                              | 项目名称，全局唯一                    |
+| dev_environment     | string |  是  | —                                              | 开发环境描述，用于上下文提示          |
+| grpc_server_address | string |  是  | —                                              | 通信/部署服务器地址，不使用可填占位符 |
+| llm_model           | string |  否  | GPT-5.2                                        | 默认模型（实际调用通常显式指定）      |
+| llm_url             | string |  否  | http://43.132.224.225:8000/v1/chat/completions | LLM 远端地址                          |
+| git_work_dir        | string |  否  | /git_workspace                                 | 本地临时 Git 提交目录                 |
+| ai_work_dir         | string |  否  | /aiWorkDir                                     | 项目文件工作目录根路径                |
 
 **请求示例：**
 
@@ -637,16 +644,16 @@ GET /v1/projects/{id}/complete-source-code
 
 ### 9.1 分类对象字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | int | 主键 |
-| name | string | 分类名称（唯一） |
-| prompt_template | string | 提示模板 |
-| message_method | string | 处理方法名称，如 PlanGetRequest / PlanExecuteRequest |
-| auto_save_category_id | int\|null | 自动保存的目标分类 ID |
-| is_builtin | bool | 是否内置分类 |
-| summary_model | string | 总结/生成时默认使用的模型（默认 GPT-4.1） |
-| created_time | string | ISO 8601 |
+| 字段                  | 类型      | 说明                                                 |
+| --------------------- | --------- | ---------------------------------------------------- |
+| id                    | int       | 主键                                                 |
+| name                  | string    | 分类名称（唯一）                                     |
+| prompt_template       | string    | 提示模板                                             |
+| message_method        | string    | 处理方法名称，如 PlanGetRequest / PlanExecuteRequest |
+| auto_save_category_id | int\|null | 自动保存的目标分类 ID                                |
+| is_builtin            | bool      | 是否内置分类                                         |
+| summary_model         | string    | 总结/生成时默认使用的模型（默认 GPT-4.1）            |
+| created_time          | string    | ISO 8601                                             |
 
 ### 9.2 获取分类列表
 
@@ -664,20 +671,61 @@ GET /v1/plan/categories/{category_id}
 
 响应：分类对象或 404。
 
+##### 按名称查询分类 API
+
+`GET /v1/plan/categories/by-name`
+
+按 `name` 精确匹配查询单个分类。
+
+###### 请求参数（Query）
+
+| 参数 | 类型   | 必填 | 说明                 |
+| ---- | ------ | ---: | -------------------- |
+| name | string |   是 | 分类名称（精确匹配） |
+
+###### 成功响应（200）
+
+```json
+{
+  "id": 5,
+  "name": "知识库",
+  "prompt_template": "......",
+  "message_method": "PlanGetRequest",
+  "auto_save_category_id": null,
+  "is_builtin": true,
+  "summary_model": "GPT-4.1",
+  "created_time": "2026-03-14T10:20:30"
+}
+```
+
+###### 错误响应
+
+- `400`：`name` 为空
+
+```json
+{ "detail": "name cannot be empty" }
+```
+
+- `404`：分类不存在
+
+```json
+{ "detail": "Category not found" }
+```
+
 ### 9.4 创建分类
 
 ```
 POST /v1/plan/categories
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|:----:|------|
-| name | string | 是 | 分类名称，唯一 |
-| prompt_template | string | 是 | 提示模板 |
-| message_method | string | 是 | 处理方法名称 |
-| auto_save_category_id | int\|null | 否 | 默认 null |
-| is_builtin | bool | 否 | 默认 false |
-| summary_model | string | 否 | 默认 GPT-4.1 |
+| 字段                  | 类型      | 必填 | 说明           |
+| --------------------- | --------- | :--: | -------------- |
+| name                  | string    |  是  | 分类名称，唯一 |
+| prompt_template       | string    |  是  | 提示模板       |
+| message_method        | string    |  是  | 处理方法名称   |
+| auto_save_category_id | int\|null |  否  | 默认 null      |
+| is_builtin            | bool      |  否  | 默认 false     |
+| summary_model         | string    |  否  | 默认 GPT-4.1   |
 
 响应：创建后的完整分类对象，或 400（创建失败）。
 
@@ -717,21 +765,19 @@ DELETE /v1/plan/categories/{category_id}
 
 ## 十、计划文档管理
 
-> 文档采用只增不改的版本策略：每次写入均生成新版本，旧版本保留。
-
 ### 10.1 文档对象字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | int | 主键 |
-| project_id | int | 所属项目 |
-| category_id | int | 所属分类 |
-| filename | string | 文件名（同一分类下唯一标识文档的逻辑名） |
-| content | string | 文档内容 |
-| version | int | 版本号，自动递增 |
-| source | string | 来源：user / server / chat |
-| related_log_id | int\|null | 关联执行日志 ID |
-| created_time | string | ISO 8601 |
+| 字段           | 类型      | 说明                                     |
+| -------------- | --------- | ---------------------------------------- |
+| id             | int       | 主键                                     |
+| project_id     | int       | 所属项目                                 |
+| category_id    | int       | 所属分类                                 |
+| filename       | string    | 文件名（同一分类下唯一标识文档的逻辑名） |
+| content        | string    | 文档内容                                 |
+| version        | int       | 版本号，自动递增                         |
+| source         | string    | 来源：user / server / chat               |
+| related_log_id | int\|null | 关联执行日志 ID                          |
+| created_time   | string    | ISO 8601                                 |
 
 ### 10.2 新增文档版本
 
@@ -739,15 +785,15 @@ DELETE /v1/plan/categories/{category_id}
 POST /v1/plan/documents
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|:----:|------|
-| project_id | int | 是 | |
-| category_id | int | 是 | |
-| filename | string | 是 | |
-| content | string | 是 | |
-| version | int | 否 | 不传则自动递增 |
-| source | string | 否 | user / server / chat |
-| related_log_id | int | 否 | 关联日志 ID |
+| 字段           | 类型   | 必填 | 说明                 |
+| -------------- | ------ | :--: | -------------------- |
+| project_id     | int    |  是  |                      |
+| category_id    | int    |  是  |                      |
+| filename       | string |  是  |                      |
+| content        | string |  是  |                      |
+| version        | int    |  否  | 不传则自动递增       |
+| source         | string |  否  | user / server / chat |
+| related_log_id | int    |  否  | 关联日志 ID          |
 
 响应：新建的文档记录（含 version 与 created_time）。
 
@@ -775,15 +821,15 @@ GET /v1/plan/documents/latest
 
 **查询参数：**
 
-| 参数 | 类型 | 必填 | 默认 | 说明 |
-|------|------|:----:|------|------|
-| project_id | int | 是 | — | 支持字符串数字（如 "41"） |
-| category_id | int | 否 | — | 允许空值，空则视为未提供 |
-| query | string | 否 | — | filename 模糊匹配（LIKE %query%），空则不过滤 |
-| sort_by | string | 否 | created_time | filename / created_time / version |
-| order | string | 否 | desc | asc / desc |
-| page | int | 否 | 1 | >=1；允许空，按 1 处理 |
-| page_size | int | 否 | 20 | 1~200；允许空，按 20 处理 |
+| 参数        | 类型   | 必填 | 默认         | 说明                                          |
+| ----------- | ------ | :--: | ------------ | --------------------------------------------- |
+| project_id  | int    |  是  | —            | 支持字符串数字（如 "41"）                     |
+| category_id | int    |  否  | —            | 允许空值，空则视为未提供                      |
+| query       | string |  否  | —            | filename 模糊匹配（LIKE %query%），空则不过滤 |
+| sort_by     | string |  否  | created_time | filename / created_time / version             |
+| order       | string |  否  | desc         | asc / desc                                    |
+| page        | int    |  否  | 1            | >=1；允许空，按 1 处理                        |
+| page_size   | int    |  否  | 20           | 1~200；允许空，按 20 处理                     |
 
 **响应（200）：**
 
@@ -831,11 +877,11 @@ POST /v1/plan/documents/merge
 }
 ```
 
-| 错误码 | 说明 |
-|--------|------|
-| 400 | document_ids 为空 |
-| 404 | 文档不存在 |
-| 500 | 内部错误 |
+| 错误码 | 说明              |
+| ------ | ----------------- |
+| 400    | document_ids 为空 |
+| 404    | 文档不存在        |
+| 500    | 内部错误          |
 
 > 重复 ID 去重，仅保留首次出现顺序。filename 为空时回退为 `document_{id}`。
 
@@ -847,17 +893,27 @@ GET /v1/plan/documents/{document_id}
 
 响应：文档对象或 404。
 
-### 10.7 编辑文档（生成新版本）
+### 10.7 编辑文档
+
+原文档更新，修改库文档表字段
 
 ```
 PUT /v1/plan/documents/{document_id}
+```
+
+### 10.8 安全编辑文档（留痕）
+
+生成新版本同名文档，增加数据行，版本号+1
+
+```
+POST /v1/plan/documents/{document_id}
 ```
 
 更新时创建新版本，不覆盖原版本。所有字段均可选：`filename`、`content`、`source`。
 返回新 id 的新记录。
 
 
-### 10.8 删除文档 API
+### 10.9 删除文档 API
 
 #### 1）删除单个文档版本（按 document_id）
 
@@ -1163,42 +1219,42 @@ GET /v1/projects/{project_id}/hierarchy
 
 #### 顶层字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| project_id | int | 项目 ID |
-| project_name | string | 项目名称 |
-| project_document_references | array | 项目级引用文档列表 |
-| conversations | array | 项目下会话列表 |
+| 字段                        | 类型   | 说明               |
+| --------------------------- | ------ | ------------------ |
+| project_id                  | int    | 项目 ID            |
+| project_name                | string | 项目名称           |
+| project_document_references | array  | 项目级引用文档列表 |
+| conversations               | array  | 项目下会话列表     |
 
 #### project_document_references[] / conversation_document_references[] 元素字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| document_id | int | 引用文档 ID（plan_documents.id） |
-| filename | string | 文档名称 |
-| version | int\\|null | 文档版本号 |
+| 字段        | 类型   | 说明                             |
+| ----------- | ------ | -------------------------------- |
+| document_id | int    | 引用文档 ID（plan_documents.id） |
+| filename    | string | 文档名称                         |
+| version     | int\\  | null                             |
 
 #### conversations[] 元素字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | string | 会话 ID |
-| name | string\\|null | 会话名称 |
-| model | string\\|null | 会话模型 |
-| assistance_role | string\\|null | 会话助手角色 |
-| status | int | 会话状态（0=正常，1=存档） |
-| created_at | string\\|null | 会话创建时间（ISO8601） |
-| updated_at | string\\|null | 会话更新时间（ISO8601） |
-| conversation_document_references | array | 会话级引用文档列表 |
+| 字段                             | 类型     | 说明                       |
+| -------------------------------- | -------- | -------------------------- |
+| id                               | string   | 会话 ID                    |
+| name                             | string\\ | null                       |
+| model                            | string\\ | null                       |
+| assistance_role                  | string\\ | null                       |
+| status                           | int      | 会话状态（0=正常，1=存档） |
+| created_at                       | string\\ | null                       |
+| updated_at                       | string\\ | null                       |
+| conversation_document_references | array    | 会话级引用文档列表         |
 
 ---
 
 ### 13.4 错误响应
 
-| 状态码 | 说明 |
-|--------|------|
-| 404 | 项目不存在 |
-| 500 | 服务器内部错误 |
+| 状态码 | 说明           |
+| ------ | -------------- |
+| 404    | 项目不存在     |
+| 500    | 服务器内部错误 |
 
 示例（404）：
 
@@ -1207,3 +1263,4 @@ GET /v1/projects/{project_id}/hierarchy
   "detail": "Project not found"
 }
 ```
+
